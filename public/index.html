@@ -7,8 +7,10 @@
   <title>Lumina</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body>
-  <header class="header"><div class="header__inner">
+<body class="theme-lumina">
+  <div class="bg-animation" aria-hidden="true"></div>
+  <header class="header">
+    <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme" title="Toggle theme"><span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">&#9728;</span><span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">&#9789;</span></button><div class="header__inner">
     <span class="badge">Python · Playwright · Whisper</span>
     <h1>Lumina</h1>
     <p>Self-hosted service that generates and executes website test cases from video + audio recordings — Whisper transcription, Ollama test generation, Playwright execution.</p>
@@ -20,5 +22,6 @@ pip install -r requirements.txt
 playwright install chromium
 # Requires Ollama at http://localhost:11434</pre><p>Designed to integrate with Lampshade for spotlight testing.</p></section></main>
   <footer class="site-footer footer"><p>MIT © 2026 · <a href="https://piyushm.dev">piyushm.dev</a> · <a href="https://github.com/PiyushMishra318/lumina" target="_blank" rel="noopener noreferrer">View on GitHub</a></p></footer>
+  <script src="/theme.js"></script>
 </body>
 </html>
