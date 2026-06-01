@@ -1,23 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Work+Sans:wght@400;600&display=swap" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Self-hosted service that generates and executes website test cases from video + audio recordings — Whisper transcription, Ollama test generation, Playwright execution." />
   <title>Lumina</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
-<body class="theme-lumina">
+<body class="theme-lumina portfolio-designed landing-page">
   <div class="bg-animation" aria-hidden="true"></div>
-  <header class="header">
-    <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme" title="Toggle theme"><span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">&#9728;</span><span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">&#9789;</span></button><div class="header__inner">
+  <header class="header landing-hero">
+        <div class="header__top">
+      <a class="header__brand" href="https://piyushm.dev">piyushm.dev</a>
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme" title="Toggle theme"><span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">&#9728;</span><span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">&#9789;</span></button>
+    </div>
+<div class="header__inner">
     <span class="badge">Python · Playwright · Whisper</span>
     <h1>Lumina</h1>
     <p>Self-hosted service that generates and executes website test cases from video + audio recordings — Whisper transcription, Ollama test generation, Playwright execution.</p>
   
       <a class="header__github" href="https://github.com/PiyushMishra318/lumina" target="_blank" rel="noopener noreferrer">View on GitHub</a>
     </div></header>
-  <main class="page-main main"><section class="card"><h2>Features</h2><ul><li>Extract and transcribe Loom-style recordings locally</li><li>AI-generated structured test cases via Ollama</li><li>Playwright/Chrome execution with failure screenshots</li></ul><div class="actions"><a class="btn" href="https://github.com/PiyushMishra318/lumina">View on GitHub</a></div></section><section class="card"><h2>Self-hosted setup</h2><pre>python -m venv venv
+  <main class="page-main main"><section class="card"><h2>Features</h2><div class="feature-grid"><div class="feature-tile"><strong>Extract and transcribe Loom-style recordings locally</strong><span></span></div><div class="feature-tile"><strong>AI-generated structured test cases via Ollama</strong><span></span></div><div class="feature-tile"><strong>Playwright/Chrome execution with failure screenshots</strong><span></span></div></div><div class="actions"><a class="btn" href="https://github.com/PiyushMishra318/lumina">View on GitHub</a></div></section><section class="card"><h2>Self-hosted setup</h2><pre>python -m venv venv
 pip install -r requirements.txt
 playwright install chromium
 # Requires Ollama at http://localhost:11434</pre><p>Designed to integrate with Lampshade for spotlight testing.</p></section></main>
