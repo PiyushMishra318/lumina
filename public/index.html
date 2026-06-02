@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Try Lumina’s interactive sample: walkthroughs become editable browser tests. Self-host to process your own recordings." />
+  <meta name="description" content="Turn product walkthroughs into regression tests. Record once, review steps, run them in a real browser — try the interactive demo." />
   <title>Lumina — Walkthroughs become tests</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -59,7 +59,7 @@
       <div class="app-shell__head">
         <div>
           <p class="section-title">Try Lumina</p>
-          <h2 class="app-shell__title">Play your walkthrough, edit preset steps, watch them run</h2>
+          <h2 class="app-shell__title">See a walkthrough become a test you can edit and rerun</h2>
         </div>
       </div>
 
@@ -74,9 +74,9 @@
       </div>
 
       <div class="pipeline" id="pipeline" aria-live="polite">
-        <div class="pipeline__step is-active" data-stage="load"><span>1</span> Sample clip</div>
-        <div class="pipeline__step" data-stage="transcribe"><span>2</span> Transcribe</div>
-        <div class="pipeline__step" data-stage="steps"><span>3</span> Generate steps</div>
+        <div class="pipeline__step is-active" data-stage="load"><span>1</span> Watch walkthrough</div>
+        <div class="pipeline__step" data-stage="transcribe"><span>2</span> Hear the flow</div>
+        <div class="pipeline__step" data-stage="steps"><span>3</span> Build steps</div>
         <div class="pipeline__step" data-stage="run"><span>4</span> Run test</div>
       </div>
       <p class="app-status" id="app-status">Where should we run this test? Load a preview URL, then start the demo.</p>
@@ -88,7 +88,7 @@
               <div class="demo-clip__idle" id="demo-idle">
                 <span class="demo-clip__icon" aria-hidden="true">▶</span>
                 <p class="demo-clip__title">Recording 2026-06-02 232143</p>
-                <p class="demo-clip__hint">Your screen recording plays for real. Transcript and steps are preset illustrations — self-host Lumina for Whisper + LLM + Playwright on your own clips.</p>
+                <p class="demo-clip__hint">Watch a real checkout walkthrough. The transcript and steps below are a fixed sample you can edit — deploy Lumina on your stack to turn your own recordings into tests.</p>
                 <button type="button" class="btn" id="start-demo-inline">Start demo</button>
               </div>
               <div class="demo-clip__progress" id="demo-progress" hidden>
@@ -130,7 +130,7 @@
               </div>
               <button type="button" class="btn btn--ghost btn--sm" id="add-step">Add step</button>
             </div>
-            <p class="editor-empty" id="editor-empty">Preset checkout steps appear here after the demo loads — not auto-generated from your video.</p>
+            <p class="editor-empty" id="editor-empty">Editable checkout steps appear here after you start the demo.</p>
             <ol class="step-list" id="step-list"></ol>
           </div>
 
@@ -162,6 +162,27 @@
     </section>
 
     <section class="card">
+      <p class="section-title">Who it’s for</p>
+      <div class="feature-grid">
+        <div class="feature-tile">
+          <span class="feature-tile__icon" aria-hidden="true">📋</span>
+          <strong>Product &amp; QA teams</strong>
+          <span>Turn release walkthroughs into repeatable smoke tests before every deploy.</span>
+        </div>
+        <div class="feature-tile">
+          <span class="feature-tile__icon" aria-hidden="true">🎨</span>
+          <strong>Designers &amp; PMs</strong>
+          <span>Record how a flow should work — no coding test scripts required.</span>
+        </div>
+        <div class="feature-tile">
+          <span class="feature-tile__icon" aria-hidden="true">🚀</span>
+          <strong>Startups shipping fast</strong>
+          <span>Keep critical checkout and onboarding paths covered without a dedicated QA hire.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
       <p class="section-title">Why Lumina</p>
       <div class="feature-grid">
         <div class="feature-tile">
@@ -177,7 +198,7 @@
         <div class="feature-tile">
           <span class="feature-tile__icon" aria-hidden="true">🔒</span>
           <strong>Own your data</strong>
-          <span>Self-host the full pipeline — recordings stay on your infrastructure.</span>
+          <span>Run Lumina on your own servers — recordings never leave your infrastructure.</span>
         </div>
       </div>
     </section>
@@ -185,7 +206,7 @@
     <section class="cta-band">
       <div>
         <strong>Ready for production?</strong>
-        <p>Self-host Lumina to run the full video → Playwright pipeline on your own recordings.</p>
+        <p>Deploy Lumina on your infrastructure to process your own walkthroughs end to end.</p>
       </div>
       <a class="btn btn--ghost" href="https://github.com/PiyushMishra318/lumina" target="_blank" rel="noopener noreferrer">View on GitHub</a>
     </section>
