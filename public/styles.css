@@ -1012,6 +1012,17 @@ main > .card,
   margin-bottom: 1.25rem;
 }
 
+@media (max-width: 560px) {
+  .app-shell__head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-shell__head .btn--sm {
+    align-self: flex-start;
+  }
+}
+
 .app-shell__title {
   margin: 0.35rem 0 0;
   font-family: var(--font-display, inherit);
@@ -1543,6 +1554,14 @@ main > .card,
   justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .editor-panel__head .btn--sm {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .editor-empty {
@@ -1628,7 +1647,7 @@ main > .card,
 .step-card__body {
   display: none;
   padding: 0 0.85rem 0.85rem;
-  gap: 0.65rem;
+  gap: 0.75rem;
   flex-direction: column;
 }
 
@@ -1636,11 +1655,24 @@ main > .card,
   display: flex;
 }
 
-.step-card__row {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+.step-card__toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  align-items: end;
+}
+
+@media (max-width: 520px) {
+  .step-card__toolbar {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .step-card__reorder {
+    justify-content: flex-end;
+    padding-top: 0.35rem;
+    border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  }
 }
 
 .step-card__num {
@@ -1674,43 +1706,64 @@ main > .card,
 .step-icon--assert { background: color-mix(in srgb, #22c55e 20%, transparent); color: #4ade80; }
 .step-icon--wait { background: color-mix(in srgb, #f59e0b 20%, transparent); color: #fbbf24; }
 
-.step-card__action {
-  flex: 1;
-  min-width: 7rem;
-  padding: 0.4rem 0.55rem;
-  border-radius: 6px;
+.step-card__select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem 2rem 0.55rem 0.65rem;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--bg) 40%, var(--surface));
   color: var(--text);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 600;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 1.1rem) calc(50% - 0.15rem),
+    calc(100% - 0.75rem) calc(50% - 0.15rem);
+  background-size: 0.35rem 0.35rem, 0.35rem 0.35rem;
+  background-repeat: no-repeat;
 }
 
-.step-card__action:focus {
+.step-card__select:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
 .step-card__reorder {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  align-items: center;
 }
 
 .icon-btn {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg) 30%, var(--surface));
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 1rem;
+  line-height: 1;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+@media (pointer: coarse) {
+  .icon-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
 }
 
 .icon-btn:hover:not(:disabled) {
@@ -1728,21 +1781,24 @@ main > .card,
   color: #ef4444;
 }
 
-.step-card__label {
+.step-card__field {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  flex: 1;
-  min-width: 8rem;
+  min-width: 0;
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--muted);
 }
 
-.step-card__label input,
-.step-card__label select {
+.step-card__field--action {
+  min-width: 0;
+}
+
+.step-card__field input {
   width: 100%;
-  padding: 0.5rem 0.65rem;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--bg) 35%, var(--surface));
@@ -1751,23 +1807,30 @@ main > .card,
   font-size: 0.88rem;
 }
 
-.step-card__label input:focus,
-.step-card__label select:focus {
+.step-card__field input:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
-}
-
-.step-card__action {
-  margin-top: 0.15rem;
 }
 
 /* Run bar */
 .run-bar {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0.65rem;
   flex-wrap: wrap;
   padding: 0.15rem 0;
+}
+
+@media (max-width: 480px) {
+  .run-bar {
+    flex-direction: column;
+  }
+
+  .run-bar .btn--run,
+  .run-bar .btn--ghost {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 .btn--run {

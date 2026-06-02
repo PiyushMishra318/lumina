@@ -329,8 +329,8 @@
         '<span class="step-card__chevron" aria-hidden="true"></span>' +
         "</button>" +
         '<div class="step-card__body">' +
-        '<div class="step-card__row">' +
-        '<label class="step-card__label">Action<select class="step-card__action" data-field="action" aria-label="Action type">' +
+        '<div class="step-card__toolbar">' +
+        '<label class="step-card__field step-card__field--action">Action<select class="step-card__select" data-field="action" aria-label="Action type">' +
         ACTION_TYPES.map(function (a) {
           return (
             '<option value="' +
@@ -343,7 +343,7 @@
           );
         }).join("") +
         "</select></label>" +
-        '<div class="step-card__reorder">' +
+        '<div class="step-card__reorder" role="group" aria-label="Reorder step">' +
         '<button type="button" class="icon-btn" data-move="up" aria-label="Move step up"' +
         (index === 0 ? " disabled" : "") +
         ">↑</button>" +
@@ -352,11 +352,11 @@
         ">↓</button>" +
         '<button type="button" class="icon-btn icon-btn--danger" data-remove aria-label="Remove step">×</button>' +
         "</div></div>" +
-        '<label class="step-card__label">On<input type="text" data-field="target" value="' +
+        '<label class="step-card__field">On<input type="text" data-field="target" value="' +
         escapeAttr(step.target) +
         '" placeholder="e.g. Email field, Submit button" /></label>' +
         (needsValue
-          ? '<label class="step-card__label">' +
+          ? '<label class="step-card__field">' +
             valueLabel +
             '<input type="text" data-field="value" value="' +
             escapeAttr(step.value) +
