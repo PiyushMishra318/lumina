@@ -63,33 +63,26 @@
         </div>
       </div>
 
+      <div class="site-url-field" id="site-url-field">
+        <label class="site-url-field__label" for="site-url">Where should we run this test?</label>
+        <p class="site-url-field__hint">Load your page in the live browser preview — step replay runs against whatever is shown there. Leave blank and click Load preview for the built-in sample checkout.</p>
+        <div class="site-url-field__row">
+          <input type="text" id="site-url" class="site-url-field__input" name="site-url" inputmode="url" autocomplete="url" placeholder="https://yoursite.com/checkout" spellcheck="false" aria-describedby="site-url-error" required />
+          <button type="button" class="btn btn--sm" id="load-preview-url">Load preview</button>
+        </div>
+        <p class="site-url-field__error" id="site-url-error" hidden role="alert"></p>
+      </div>
+
       <div class="pipeline" id="pipeline" aria-live="polite">
         <div class="pipeline__step is-active" data-stage="load"><span>1</span> Sample clip</div>
         <div class="pipeline__step" data-stage="transcribe"><span>2</span> Transcribe</div>
         <div class="pipeline__step" data-stage="steps"><span>3</span> Generate steps</div>
         <div class="pipeline__step" data-stage="run"><span>4</span> Run test</div>
       </div>
-      <p class="app-status" id="app-status">Press Start demo to load your recording and preview example.com.</p>
+      <p class="app-status" id="app-status">Where should we run this test? Load a preview URL, then start the demo.</p>
 
       <div class="app-workspace">
         <aside class="app-pane app-pane--source" aria-label="Recording and transcript">
-          <div class="pane-card site-url-field" id="site-url-field">
-            <label class="site-url-field__label" for="site-url">Your app URL</label>
-            <p class="site-url-field__hint">Loads in the live browser preview when the demo starts. Steps below are a preset checkout flow — not generated from your video on this static page.</p>
-            <input
-              type="url"
-              id="site-url"
-              class="site-url-field__input"
-              name="site-url"
-              inputmode="url"
-              autocomplete="url"
-              value="https://example.com"
-              placeholder="https://example.com"
-            />
-            <p class="site-url-field__error" id="site-url-error" hidden role="alert"></p>
-            <p class="site-url-field__optional">example.com usually blocks iframe embeds — we fall back to our sample checkout for step replay.</p>
-          </div>
-
           <div class="pane-card">
             <div class="demo-clip" id="demo-clip">
               <div class="demo-clip__idle" id="demo-idle">
@@ -155,14 +148,14 @@
         </div>
 
         <aside class="app-pane app-pane--stage" aria-label="Live browser preview">
-          <div class="browser-stage">
+          <div class="browser-stage" id="browser-stage">
             <div class="browser-stage__chrome">
               <span class="browser-stage__dot" aria-hidden="true"></span>
               <span class="browser-stage__label">Live browser</span>
               <span class="browser-stage__url" id="browser-stage-url">sample checkout</span>
             </div>
             <p class="frame-notice" id="frame-notice" hidden role="status"></p>
-            <iframe id="demo-frame" class="demo-frame" title="Page preview for your test" src="demo-target.html"></iframe>
+            <iframe id="demo-frame" class="demo-frame" title="Page preview for your test" src="about:blank"></iframe>
           </div>
         </aside>
       </div>
