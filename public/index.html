@@ -14,40 +14,45 @@
   <div class="bg-animation" aria-hidden="true"></div>
 
   <!-- Landing -->
-  <header class="header landing-hero landing-hero--split" id="top">
-    <div class="header__top">
-      <a class="header__brand" href="https://piyushm.dev">piyushm.dev</a>
-      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme" title="Toggle theme">
-        <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">&#9728;</span>
-        <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">&#9789;</span>
-      </button>
-    </div>
-    <div class="header__inner">
-      <p class="eyebrow">Spotlight testing for the web</p>
-      <h1>Your walkthrough.<br />Their regression test.</h1>
-      <p class="header__lead">Record once. Lumina turns narration and on-screen actions into steps anyone can review — then runs them in a real browser.</p>
-      <div class="hero-cta">
-        <a class="btn btn--lg" href="#app">Try Lumina</a>
+  <header class="header landing-hero" id="top">
+    <div class="landing-hero__wrap">
+      <div class="landing-hero__bar">
+        <a class="header__brand" href="https://piyushm.dev">piyushm.dev</a>
+        <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme" title="Toggle theme">
+          <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">&#9728;</span>
+          <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">&#9789;</span>
+        </button>
+      </div>
+      <div class="landing-hero__body">
+        <div class="landing-hero__copy">
+          <p class="eyebrow">Spotlight testing for the web</p>
+          <h1>Your walkthrough.<br />Their regression test.</h1>
+          <p class="header__lead">Record once. Lumina turns narration and on-screen actions into steps anyone can review — then runs them in a real browser.</p>
+          <div class="hero-cta">
+            <a class="btn btn--lg" href="#app">Try Lumina</a>
+          </div>
+        </div>
+        <aside class="hero-panel hero-panel--preview" aria-label="Product preview" id="hero-preview">
+          <span class="hero-panel__label">Live preview</span>
+          <div class="hero-preview">
+            <div class="hero-preview__clip">
+              <span class="hero-preview__rec" aria-hidden="true"></span>
+              <span class="hero-preview__time" id="hero-preview-time">0:24</span>
+            </div>
+            <div class="hero-preview__steps" id="hero-preview-steps">
+              <div class="hero-preview__step" data-step="0"><span class="step-icon step-icon--fill">✎</span> Fill email field</div>
+              <div class="hero-preview__step" data-step="1"><span class="step-icon step-icon--fill">✎</span> Enter promo code</div>
+              <div class="hero-preview__step" data-step="2"><span class="step-icon step-icon--click">◎</span> Click Apply discount</div>
+              <div class="hero-preview__step hero-preview__step--active" data-step="3"><span class="step-icon step-icon--assert">✓</span> See confirmation</div>
+            </div>
+            <div class="hero-preview__run">
+              <span class="hero-preview__dot"></span>
+              <span id="hero-preview-status">Running in browser…</span>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
-    <aside class="hero-panel hero-panel--preview" aria-label="Product preview">
-      <span class="hero-panel__label">Live preview</span>
-      <div class="hero-preview">
-        <div class="hero-preview__clip">
-          <span class="hero-preview__rec" aria-hidden="true"></span>
-          <span class="hero-preview__time">0:24</span>
-        </div>
-        <div class="hero-preview__steps">
-          <div class="hero-preview__step"><span class="step-icon step-icon--fill">✎</span> Fill email field</div>
-          <div class="hero-preview__step"><span class="step-icon step-icon--fill">✎</span> Enter promo code</div>
-          <div class="hero-preview__step"><span class="step-icon step-icon--click">◎</span> Click Apply discount</div>
-          <div class="hero-preview__step hero-preview__step--active"><span class="step-icon step-icon--assert">✓</span> See confirmation</div>
-        </div>
-        <div class="hero-preview__run">
-          <span class="hero-preview__dot"></span> Running in browser…
-        </div>
-      </div>
-    </aside>
   </header>
 
   <main class="page-main main">
