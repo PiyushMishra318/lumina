@@ -9,10 +9,8 @@
     { value: "wait", label: "Wait", icon: "⏱" },
   ];
 
-  var SAMPLE_CLIP_NAME = "Recording 2026-06-02 232143.mp4";
-  var FALLBACK_FRAME = "demo-target.html";
-  var SAMPLE_FRAME_LABEL = "sample checkout";
-  var PIPELINE_ORDER = ["load", "transcribe", "steps", "run"];
+  var SAMPLE_VIDEO_PATH = "sample-walkthrough.mp4";
+  var SAMPLE_CLIP_NAME = "checkout-walkthrough.mp4";
 
   var SAMPLE_TRANSCRIPT = [
     { t: "0:04", text: "I'll walk through applying a promo on checkout." },
@@ -44,25 +42,33 @@
     status: "#status",
   };
 
+  var PIPELINE_ORDER = ["upload", "transcribe", "steps", "run"];
+
   var state = {
     steps: [],
     running: false,
     processing: false,
-    demoLoaded: false,
+    videoUrl: null,
     stepCounter: 0,
-    previewUrl: null,
-    previewReady: false,
-    frameAccess: "unknown",
-    frameBlocked: false,
-    usingFallback: false,
-    frameLoadToken: 0,
   };
 
+  var expandedSteps = {};
   var els = {};
 
-  function $(id) { return document.getElementById(id); }
-  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-  function uid() { state.stepCounter += 1; return "step-" + state.stepCounter; }
+  function $(id) {
+    return document.getElementById(id);
+  }
+
+  function wait(ms) {
+    return new Promise(function (resolve) {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  function uid() {
+    state.stepCounter += 1;
+    return "step-" + state.stepCounter;
+  }
 
   function resolveSelector(target) {
     if (!target) return "";
@@ -81,181 +87,42 @@
     return ACTION_TYPES[0];
   }
 
-  function normalizeUrl(raw) {
-    var trimmed = (raw || "").trim();
-    if (!trimmed) return { ok: true, url: null };
-    if (/^demo-target\.html$/i.test(trimmed)) {
-      return { ok: true, url: new URL(FALLBACK_FRAME, window.location.href).href };
+  function escapeAttr(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;");
+  }
+
+  function escapeHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function stepSummary(step) {
+    var meta = actionMeta(step.action);
+    var target = step.target || "element";
+    if (step.value && (step.action === "fill" || step.action === "navigate")) {
+      return meta.label + " · " + target + " → " + step.value;
     }
-    var candidate = /^https?:\/\//i.test(trimmed) ? trimmed : "https://" + trimmed;
-    try {
-      var parsed = new URL(candidate);
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return { ok: false, error: "Please enter a web address (http:// or https://)." };
-      }
-      return { ok: true, url: parsed.href };
-    } catch (e) {
-      return { ok: false, error: "That doesn't look like a valid URL. Try https://your-app.com/checkout" };
-    }
+    return meta.label + " · " + target;
   }
 
-  function isSameOriginUrl(url) {
-    try { return new URL(url, window.location.href).origin === window.location.origin; }
-    catch (e) { return false; }
-  }
-
-  function formatUrlForChrome(url) {
-    if (!url) return SAMPLE_FRAME_LABEL;
-    try {
-      var u = new URL(url);
-      if (u.pathname.endsWith(FALLBACK_FRAME)) return SAMPLE_FRAME_LABEL;
-      var label = u.hostname.replace(/^www\./, "") + (u.pathname === "/" ? "" : u.pathname);
-      return label.length > 42 ? label.slice(0, 39) + "…" : label;
-    } catch (e) { return "your site"; }
-  }
-
-  function setFrameSrc(src) {
-    if (els.frame && els.frame.getAttribute("src") !== src) els.frame.setAttribute("src", src);
-  }
-
-  function showSiteUrlError(message) {
-    if (!els.siteUrl) return;
-    els.siteUrl.classList.add("is-invalid");
-    if (els.siteUrlField) els.siteUrlField.classList.add("site-url-field--required");
-    if (els.siteUrlError) { els.siteUrlError.hidden = false; els.siteUrlError.textContent = message; }
-  }
-
-  function hideSiteUrlError() {
-    if (!els.siteUrl) return;
-    els.siteUrl.classList.remove("is-invalid");
-    if (els.siteUrlField) els.siteUrlField.classList.remove("site-url-field--required");
-    if (els.siteUrlError) { els.siteUrlError.hidden = true; els.siteUrlError.textContent = ""; }
-  }
-
-  function showFrameNotice(kind, html) {
-    if (!els.frameNotice) return;
-    els.frameNotice.hidden = false;
-    els.frameNotice.innerHTML = html;
-    els.frameNotice.className = "frame-notice" + (kind === "warn" ? " frame-notice--warn" : kind === "error" ? " frame-notice--error" : "");
-    var btn = els.frameNotice.querySelector("[data-use-sample-checkout]");
-    if (btn) btn.addEventListener("click", useSampleCheckout);
-  }
-
-  function hideFrameNotice() {
-    if (!els.frameNotice) return;
-    els.frameNotice.hidden = true;
-    els.frameNotice.innerHTML = "";
-    els.frameNotice.className = "frame-notice";
-  }
-
-  function blockedNoticeHtml() {
-    return "<strong>This site can't be embedded here.</strong> Many pages block iframe previews (X-Frame-Options or CSP). <span class=\"frame-notice__actions\"><button type=\"button\" class=\"link-btn\" data-use-sample-checkout>Use sample checkout instead</button></span>";
-  }
-
-  function crossOriginNoticeHtml() {
-    return "<strong>Preview loaded, but step replay can't control this page.</strong> Cross-origin iframes block script access. <button type=\"button\" class=\"link-btn\" data-use-sample-checkout>Use sample checkout</button> to see the full demo.";
-  }
-
-  function assessFrameAccess() {
-    if (!els.frame) return "missing";
-    try {
-      var doc = els.frame.contentDocument || els.frame.contentWindow.document;
-      if (!doc || !doc.body || !doc.body.childNodes.length) return "blocked";
-      return "ok";
-    } catch (e) {
-      return state.previewUrl && !isSameOriginUrl(state.previewUrl) ? "cross-origin" : "blocked";
-    }
-  }
-
-  function loadPreviewUrl(url, showLoading) {
-    state.frameLoadToken += 1;
-    var token = state.frameLoadToken;
-    state.previewUrl = url;
-    state.previewReady = false;
-    state.frameBlocked = false;
-    state.usingFallback = !url;
-    var targetUrl = url || new URL(FALLBACK_FRAME, window.location.href).href;
-    if (els.browserStageUrl) els.browserStageUrl.textContent = formatUrlForChrome(url);
-    if (showLoading && url) showFrameNotice("info", "Loading your site in the live preview…");
-    else if (!url) hideFrameNotice();
-
-    return new Promise(function (resolve) {
-      if (!els.frame) { resolve({ ok: false }); return; }
-      var timeout = setTimeout(function () { finish({ ok: false, reason: "timeout" }); }, 15000);
-      function finish(result) { clearTimeout(timeout); els.frame.removeEventListener("load", onLoad); resolve(result); }
-      function onLoad() {
-        setTimeout(function () {
-          if (token !== state.frameLoadToken) return;
-          var access = assessFrameAccess();
-          state.frameAccess = access;
-          if (access === "ok") { hideFrameNotice(); state.previewReady = true; finish({ ok: true, access: access }); return; }
-          if (access === "cross-origin" && url) {
-            state.previewReady = true;
-            showFrameNotice("warn", crossOriginNoticeHtml());
-            finish({ ok: true, access: access, crossOrigin: true });
-            return;
-          }
-          state.frameBlocked = true;
-          showFrameNotice("error", blockedNoticeHtml());
-          finish({ ok: false, reason: "blocked", access: access });
-        }, 350);
-      }
-      els.frame.addEventListener("load", onLoad);
-      setFrameSrc(targetUrl);
-    });
-  }
-
-  function useSampleCheckout() {
-    if (els.siteUrl) els.siteUrl.value = "";
-    hideSiteUrlError();
-    state.previewUrl = null;
-    state.frameBlocked = false;
-    state.usingFallback = true;
-    loadPreviewUrl(null, false);
-    if (els.status) els.status.textContent = "Sample checkout loaded in the live browser.";
-  }
-
-  function applySiteUrlFromInput() {
-    var result = normalizeUrl(els.siteUrl ? els.siteUrl.value : "");
-    if (!result.ok) showSiteUrlError(result.error); else hideSiteUrlError();
-    return result;
-  }
-
-  async function onLoadPreviewClick() {
-    var result = applySiteUrlFromInput();
-    if (!result.ok) return;
-    if (els.loadPreviewBtn) els.loadPreviewBtn.disabled = true;
-    await loadPreviewUrl(result.url, !!result.url);
-    if (els.loadPreviewBtn) els.loadPreviewBtn.disabled = false;
-    if (els.status && !state.demoLoaded) {
-      els.status.textContent = result.url ? "Preview loaded — start the demo when ready." : "Sample checkout loaded — start the demo when ready.";
-    }
-  }
-
-  async function ensurePreviewBeforeDemo() {
-    if (state.previewReady && !state.frameBlocked) return true;
-    var result = applySiteUrlFromInput();
-    if (!result.ok) return false;
-    var outcome = await loadPreviewUrl(result.url, !!result.url);
-    return outcome.ok || outcome.crossOrigin;
-  }
-
-  async function ensureRunnableFrame() {
-    var doc = getFrameDoc();
-    if (doc && state.frameAccess === "ok" && !state.usingFallback) return doc;
-    if (state.previewUrl && state.frameAccess === "cross-origin") showFrameNotice("warn", crossOriginNoticeHtml());
-    setFrameSrc(new URL(FALLBACK_FRAME, window.location.href).href);
-    state.usingFallback = true;
-    if (els.browserStageUrl) els.browserStageUrl.textContent = SAMPLE_FRAME_LABEL;
-    await wait(450);
-    return getFrameDoc();
+  function isStepExpanded(id, index) {
+    if (expandedSteps[id] !== undefined) return expandedSteps[id];
+    return state.steps.length <= 2 || index === 0;
   }
 
   function bind() {
-    els.demoIdle = $("demo-idle");
-    els.demoProgress = $("demo-progress");
-    els.demoVideoPlayer = $("demo-video-player");
-    els.sampleVideo = $("sample-video");
+    els.uploadZone = $("upload-zone");
+    els.uploadDrop = $("upload-drop");
+    els.videoInput = $("video-input");
+    els.browseBtn = $("browse-btn");
+    els.uploadProgress = $("upload-progress");
+    els.uploadPlayer = $("upload-player");
+    els.clipVideo = $("clip-video");
     els.videoName = $("video-name");
     els.progressFill = $("progress-fill");
     els.progressPct = $("progress-pct");
@@ -267,36 +134,57 @@
     els.runBtn = $("run-test");
     els.resetBtn = $("reset-app");
     els.results = $("demo-results");
+    els.resultsPanel = $("results-panel");
     els.frame = $("demo-frame");
     els.pipeline = $("pipeline");
     els.status = $("app-status");
     els.addStepBtn = $("add-step");
-    els.startDemoInline = $("start-demo-inline");
-    els.resultsPanel = $("results-panel");
-    els.siteUrl = $("site-url");
-    els.siteUrlField = $("site-url-field");
-    els.siteUrlError = $("site-url-error");
-    els.loadPreviewBtn = $("load-preview-url");
-    els.frameNotice = $("frame-notice");
-    els.browserStageUrl = $("browser-stage-url");
-    if (!els.frame) return;
-    if (els.startDemoInline) els.startDemoInline.addEventListener("click", startDemo);
-    if (els.runBtn) els.runBtn.addEventListener("click", runTest);
-    if (els.resetBtn) els.resetBtn.addEventListener("click", resetApp);
-    if (els.addStepBtn) els.addStepBtn.addEventListener("click", addBlankStep);
-    if (els.loadPreviewBtn) els.loadPreviewBtn.addEventListener("click", onLoadPreviewClick);
-    if (els.siteUrl) els.siteUrl.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); onLoadPreviewClick(); }
+    els.useSampleBtn = $("use-sample");
+
+    if (!els.uploadZone) return;
+
+    els.browseBtn.addEventListener("click", function () {
+      els.videoInput.click();
     });
+    els.videoInput.addEventListener("change", onFileSelected);
+    els.uploadDrop.addEventListener("dragover", onDragOver);
+    els.uploadDrop.addEventListener("dragleave", onDragLeave);
+    els.uploadDrop.addEventListener("drop", onDrop);
+    els.runBtn.addEventListener("click", runTest);
+    els.resetBtn.addEventListener("click", resetApp);
+    els.addStepBtn.addEventListener("click", addBlankStep);
+    els.useSampleBtn.addEventListener("click", useSampleClip);
+  }
+
+  function onDragOver(e) {
+    e.preventDefault();
+    els.uploadZone.classList.add("is-dragover");
+  }
+
+  function onDragLeave() {
+    els.uploadZone.classList.remove("is-dragover");
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    els.uploadZone.classList.remove("is-dragover");
+    var file = e.dataTransfer.files[0];
+    if (file) processVideo(file);
+  }
+
+  function onFileSelected(e) {
+    var file = e.target.files[0];
+    if (file) processVideo(file);
   }
 
   function setPipeline(stage, label) {
     if (!els.pipeline) return;
     var idx = PIPELINE_ORDER.indexOf(stage);
     els.pipeline.querySelectorAll("[data-stage]").forEach(function (node) {
-      var si = PIPELINE_ORDER.indexOf(node.getAttribute("data-stage"));
+      var s = node.getAttribute("data-stage");
+      var si = PIPELINE_ORDER.indexOf(s);
       node.classList.remove("is-active", "is-done");
-      if (si >= 0 && si < idx) node.classList.add("is-done");
+      if (si < idx) node.classList.add("is-done");
       if (si === idx) node.classList.add("is-active");
     });
     if (els.status) els.status.textContent = label;
@@ -310,269 +198,510 @@
         var val = from + (to - from) * t;
         if (els.progressFill) els.progressFill.style.width = val + "%";
         if (els.progressPct) els.progressPct.textContent = Math.round(val) + "%";
-        if (t < 1) requestAnimationFrame(tick); else resolve();
+        if (t < 1) requestAnimationFrame(tick);
+        else resolve();
       }
       requestAnimationFrame(tick);
     });
   }
 
-  function showProgressUI() {
-    if (els.demoIdle) els.demoIdle.hidden = true;
-    if (els.demoProgress) els.demoProgress.hidden = false;
-    if (els.videoName) els.videoName.textContent = SAMPLE_CLIP_NAME;
-    if (els.videoThumb) els.videoThumb.innerHTML = '<div class="demo-clip__placeholder" aria-hidden="true"><span>▶</span></div>';
+  function showClipPlayer(src, isBlob) {
+    els.uploadDrop.hidden = true;
+    els.uploadProgress.hidden = false;
+    if (els.uploadPlayer) els.uploadPlayer.hidden = false;
+    if (els.clipVideo) {
+      if (isBlob && state.videoUrl) URL.revokeObjectURL(state.videoUrl);
+      if (isBlob) {
+        state.videoUrl = src;
+        els.clipVideo.src = src;
+      } else {
+        els.clipVideo.removeAttribute("src");
+        els.clipVideo.innerHTML = '<source src="' + escapeAttr(src) + '" type="video/mp4" />';
+        els.clipVideo.load();
+      }
+    }
+    if (els.videoThumb) els.videoThumb.hidden = true;
   }
 
-  function showVideoPlayer() {
-    if (els.demoProgress) els.demoProgress.hidden = true;
-    if (els.demoVideoPlayer) els.demoVideoPlayer.hidden = false;
-    if (els.sampleVideo) { els.sampleVideo.load(); els.sampleVideo.play().catch(function () {}); }
+  function showUploadUI(file) {
+    if (els.videoName) els.videoName.textContent = file.name;
+    showClipPlayer(URL.createObjectURL(file), true);
   }
 
-  function showDemoIdleUI() {
-    if (els.demoIdle) els.demoIdle.hidden = false;
-    if (els.demoProgress) els.demoProgress.hidden = true;
-    if (els.demoVideoPlayer) els.demoVideoPlayer.hidden = true;
-    if (els.sampleVideo) { els.sampleVideo.pause(); els.sampleVideo.currentTime = 0; }
-    if (els.transcriptPanel) els.transcriptPanel.hidden = true;
-  }
-
-  async function startDemo() {
-    if (state.processing || state.demoLoaded) return;
-    if (!(await ensurePreviewBeforeDemo())) {
-      if (els.status) els.status.textContent = "Load a preview URL first — enter your site or leave blank for sample checkout.";
-      if (els.siteUrlField) els.siteUrlField.classList.add("site-url-field--required");
+  async function processVideo(file) {
+    if (state.processing) return;
+    var valid = /^video\/(mp4|webm)$/i.test(file.type) || /\.(mp4|webm)$/i.test(file.name);
+    if (!valid) {
+      if (els.status) els.status.textContent = "Please upload an MP4 or WebM screen recording.";
       return;
     }
+
     state.processing = true;
-    showProgressUI();
-    setPipeline("load", "Loading your walkthrough recording…");
-    await animateProgress(0, 100, 700);
+    showUploadUI(file);
+    setPipeline("upload", "Uploading your clip…");
+    await animateProgress(0, 100, 800);
+
     setPipeline("transcribe", "Transcribing narration from audio…");
-    await animateProgress(0, 100, 1200);
+    await animateProgress(0, 100, 1400);
     renderTranscript();
-    if (els.transcriptPanel) els.transcriptPanel.hidden = false;
-    setPipeline("steps", "Generating editable test steps…");
-    await wait(850);
+
+    setPipeline("steps", "Turning walkthrough into editable test steps…");
+    await wait(900);
+    expandedSteps = {};
     state.steps = DEFAULT_STEPS.map(function (s) {
       return { id: uid(), action: s.action, target: s.target, value: s.value, selector: s.selector };
     });
     renderSteps();
-    if (els.runBtn) els.runBtn.disabled = false;
-    showVideoPlayer();
-    setPipeline("steps", "Ready — edit steps, then run the test in the live browser.");
+    els.transcriptPanel.hidden = false;
+    els.runBtn.disabled = false;
+
+    setPipeline("steps", "Steps ready — review, edit, then run the test.");
     state.processing = false;
-    state.demoLoaded = true;
+  }
+
+  async function useSampleClip() {
+    if (els.videoName) els.videoName.textContent = SAMPLE_CLIP_NAME;
+    showClipPlayer(SAMPLE_VIDEO_PATH, false);
+    var fake = new File(["sample"], SAMPLE_CLIP_NAME, { type: "video/mp4" });
+    els.uploadDrop.hidden = true;
+    els.uploadProgress.hidden = false;
+    await processVideo(fake);
   }
 
   function renderTranscript() {
     if (!els.transcript) return;
     els.transcript.innerHTML = SAMPLE_TRANSCRIPT.map(function (line) {
-      return '<div class="transcript-line"><time>' + line.t + '</time><p>' + line.text + '</p></div>';
+      return (
+        '<div class="transcript-line">' +
+        "<time>" +
+        line.t +
+        "</time>" +
+        "<p>" +
+        line.text +
+        "</p></div>"
+      );
     }).join("");
-  }
-
-  function escapeAttr(str) {
-    return String(str || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
   }
 
   function renderSteps() {
     if (!els.stepList) return;
-    if (els.editorEmpty) els.editorEmpty.hidden = state.steps.length > 0;
+    var hasSteps = state.steps.length > 0;
+    if (els.editorEmpty) els.editorEmpty.hidden = hasSteps;
     els.stepList.innerHTML = "";
+
     state.steps.forEach(function (step, index) {
       var meta = actionMeta(step.action);
-      var needsValue = step.action === "fill" || step.action === "navigate" || step.action === "assert" || step.action === "wait";
-      var valueLabel = step.action === "navigate" ? "URL" : step.action === "wait" ? "Seconds" : step.action === "assert" ? "Expected" : "Value";
+      var expanded = isStepExpanded(step.id, index) || step._highlight;
       var li = document.createElement("li");
-      li.className = "step-card" + (step._highlight ? " step-card--running" : "");
+      li.className = "step-card" + (expanded ? " step-card--expanded" : " step-card--collapsed");
       li.dataset.id = step.id;
+      if (step._highlight) li.classList.add("step-card--running");
+
+      var needsValue =
+        step.action === "fill" ||
+        step.action === "navigate" ||
+        step.action === "assert" ||
+        step.action === "wait";
+      var valueLabel =
+        step.action === "navigate"
+          ? "Page URL"
+          : step.action === "wait"
+            ? "Wait (seconds)"
+            : step.action === "assert"
+              ? "Should show"
+              : "With value";
+
       li.innerHTML =
-        '<div class="step-card__toolbar"><span class="step-card__num">' + (index + 1) + '</span><span class="step-icon step-icon--' + step.action + '">' + meta.icon + '</span>' +
-        '<select class="step-card__action" data-field="action">' + ACTION_TYPES.map(function (a) {
-          return '<option value="' + a.value + '"' + (a.value === step.action ? " selected" : "") + '>' + a.label + '</option>';
-        }).join("") + '</select><div class="step-card__reorder"><button type="button" class="icon-btn" data-move="up"' + (index === 0 ? " disabled" : "") + '>↑</button><button type="button" class="icon-btn" data-move="down"' + (index === state.steps.length - 1 ? " disabled" : "") + '>↓</button></div><button type="button" class="icon-btn icon-btn--danger" data-remove>×</button></div>' +
-        '<label class="step-card__field"><span>What to interact with</span><input type="text" data-field="target" value="' + escapeAttr(step.target) + '" placeholder="e.g. Email field" /></label>' +
-        (needsValue ? '<label class="step-card__field"><span>' + valueLabel + '</span><input type="text" data-field="value" value="' + escapeAttr(step.value) + '" /></label>' : "");
+        '<button type="button" class="step-card__header" data-toggle aria-expanded="' +
+        expanded +
+        '">' +
+        '<span class="step-card__num">' +
+        (index + 1) +
+        "</span>" +
+        '<span class="step-icon step-icon--' +
+        step.action +
+        '" aria-hidden="true">' +
+        meta.icon +
+        "</span>" +
+        '<span class="step-card__summary">' +
+        escapeHtml(stepSummary(step)) +
+        "</span>" +
+        '<span class="step-card__chevron" aria-hidden="true"></span>' +
+        "</button>" +
+        '<div class="step-card__body">' +
+        '<div class="step-card__row">' +
+        '<label class="step-card__label">Action<select class="step-card__action" data-field="action" aria-label="Action type">' +
+        ACTION_TYPES.map(function (a) {
+          return (
+            '<option value="' +
+            a.value +
+            '"' +
+            (a.value === step.action ? " selected" : "") +
+            ">" +
+            a.label +
+            "</option>"
+          );
+        }).join("") +
+        "</select></label>" +
+        '<div class="step-card__reorder">' +
+        '<button type="button" class="icon-btn" data-move="up" aria-label="Move step up"' +
+        (index === 0 ? " disabled" : "") +
+        ">↑</button>" +
+        '<button type="button" class="icon-btn" data-move="down" aria-label="Move step down"' +
+        (index === state.steps.length - 1 ? " disabled" : "") +
+        ">↓</button>" +
+        '<button type="button" class="icon-btn icon-btn--danger" data-remove aria-label="Remove step">×</button>' +
+        "</div></div>" +
+        '<label class="step-card__label">On<input type="text" data-field="target" value="' +
+        escapeAttr(step.target) +
+        '" placeholder="e.g. Email field, Submit button" /></label>' +
+        (needsValue
+          ? '<label class="step-card__label">' +
+            valueLabel +
+            '<input type="text" data-field="value" value="' +
+            escapeAttr(step.value) +
+            '" placeholder="' +
+            (step.action === "wait" ? "2" : "Enter value") +
+            '" /></label>'
+          : "") +
+        "</div>";
+
       els.stepList.appendChild(li);
     });
+
     els.stepList.querySelectorAll(".step-card").forEach(function (card) {
       var id = card.dataset.id;
+      var toggle = card.querySelector("[data-toggle]");
+      if (toggle) {
+        toggle.addEventListener("click", function () {
+          expandedSteps[id] = !card.classList.contains("step-card--expanded");
+          renderSteps();
+        });
+      }
       card.querySelectorAll("[data-field]").forEach(function (input) {
-        input.addEventListener("change", function () { updateStep(id, input.dataset.field, input.value); });
-        input.addEventListener("input", function () { if (input.dataset.field === "target") updateStep(id, "target", input.value, true); });
+        input.addEventListener("change", function () {
+          updateStep(id, input.dataset.field, input.value);
+        });
+        input.addEventListener("input", function () {
+          if (input.dataset.field === "target") updateStep(id, "target", input.value, true);
+          else if (input.dataset.field === "value") {
+            var step = state.steps.find(function (s) {
+              return s.id === id;
+            });
+            if (step) step.value = input.value;
+            var summary = card.querySelector(".step-card__summary");
+            if (summary) summary.textContent = stepSummary(step);
+          }
+        });
       });
       card.querySelectorAll("[data-move]").forEach(function (btn) {
-        btn.addEventListener("click", function () { moveStep(id, btn.dataset.move); });
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          moveStep(id, btn.dataset.move);
+        });
       });
-      var rm = card.querySelector("[data-remove]");
-      if (rm) rm.addEventListener("click", function () { removeStep(id); });
+      var removeBtn = card.querySelector("[data-remove]");
+      if (removeBtn) {
+        removeBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          delete expandedSteps[id];
+          removeStep(id);
+        });
+      }
     });
   }
 
   function updateStep(id, field, value, silent) {
-    var step = state.steps.find(function (s) { return s.id === id; });
+    var step = state.steps.find(function (s) {
+      return s.id === id;
+    });
     if (!step) return;
     step[field] = value;
-    if (field === "action" || field === "target") { step.selector = resolveSelector(step.target); if (!silent) renderSteps(); }
+    if (field === "action" || field === "target") {
+      step.selector = resolveSelector(step.target);
+      if (!silent) renderSteps();
+    }
   }
 
   function moveStep(id, dir) {
-    var idx = state.steps.findIndex(function (s) { return s.id === id; });
+    var idx = state.steps.findIndex(function (s) {
+      return s.id === id;
+    });
     if (idx < 0) return;
     var next = dir === "up" ? idx - 1 : idx + 1;
     if (next < 0 || next >= state.steps.length) return;
-    var tmp = state.steps[idx]; state.steps[idx] = state.steps[next]; state.steps[next] = tmp;
+    var tmp = state.steps[idx];
+    state.steps[idx] = state.steps[next];
+    state.steps[next] = tmp;
     renderSteps();
   }
 
   function removeStep(id) {
-    state.steps = state.steps.filter(function (s) { return s.id !== id; });
+    state.steps = state.steps.filter(function (s) {
+      return s.id !== id;
+    });
     renderSteps();
-    if (state.steps.length === 0 && els.runBtn) els.runBtn.disabled = true;
+    if (state.steps.length === 0) els.runBtn.disabled = true;
   }
 
   function addBlankStep() {
-    state.steps.push({ id: uid(), action: "click", target: "", value: "", selector: "" });
+    var id = uid();
+    state.steps.push({
+      id: id,
+      action: "click",
+      target: "",
+      value: "",
+      selector: "",
+    });
+    expandedSteps[id] = true;
     renderSteps();
-    if (els.runBtn) els.runBtn.disabled = false;
+    els.runBtn.disabled = false;
     if (els.editorEmpty) els.editorEmpty.hidden = true;
   }
 
   function getFrameDoc() {
     if (!els.frame || !els.frame.contentWindow) return null;
-    try { return els.frame.contentWindow.document; } catch (e) { return null; }
+    try {
+      return els.frame.contentWindow.document;
+    } catch (e) {
+      return null;
+    }
   }
 
   function highlightInFrame(selector, on) {
     var doc = getFrameDoc();
     if (!doc || !selector) return;
     var el = doc.querySelector(selector);
-    if (el) el.classList.toggle("lumina-highlight", !!on);
+    if (!el) return;
+    if (on) el.classList.add("lumina-highlight");
+    else el.classList.remove("lumina-highlight");
   }
 
   function resetFrame() {
     var doc = getFrameDoc();
     if (!doc) return;
-    doc.querySelectorAll(".lumina-highlight").forEach(function (n) { n.classList.remove("lumina-highlight"); });
-    ["email", "promo"].forEach(function (id) { var el = doc.getElementById(id); if (el) el.value = ""; });
+    doc.querySelectorAll(".lumina-highlight").forEach(function (n) {
+      n.classList.remove("lumina-highlight");
+    });
+    var email = doc.getElementById("email");
+    var promo = doc.getElementById("promo");
     var status = doc.getElementById("status");
-    if (status) { status.hidden = true; status.textContent = ""; }
+    if (email) email.value = "";
+    if (promo) promo.value = "";
+    if (status) {
+      status.hidden = true;
+      status.textContent = "";
+    }
+  }
+
+  function setBrowserActive(on) {
+    var stage = document.querySelector(".browser-stage");
+    if (stage) stage.classList.toggle("browser-stage--active", !!on);
   }
 
   function runStep(step, doc) {
     var selector = step.selector || resolveSelector(step.target);
-    if (step.action === "wait") {
+    var action = step.action;
+
+    if (action === "wait") {
       var secs = parseFloat(step.value) || 1;
-      return wait(secs * 1000).then(function () { return { ok: true, detail: "Waited " + secs + "s" }; });
+      return wait(secs * 1000).then(function () {
+        return { ok: true, detail: "Waited " + secs + "s" };
+      });
     }
-    if (step.action === "navigate") {
-      return Promise.resolve({ ok: true, detail: "Navigated to " + (step.value || "page") + " (simulated in demo)" });
+
+    if (action === "navigate") {
+      return Promise.resolve({
+        ok: true,
+        detail: "Navigated to " + (step.value || "page") + " (simulated in demo)",
+      });
     }
+
     var el = selector ? doc.querySelector(selector) : null;
     highlightInFrame(selector, true);
-    if (step.action === "fill" && el) {
+
+    if (action === "fill" && el) {
       el.value = step.value;
       el.dispatchEvent(new Event("input", { bubbles: true }));
       el.dispatchEvent(new Event("change", { bubbles: true }));
       return Promise.resolve({ ok: true, detail: 'Entered "' + step.value + '" in ' + step.target });
     }
-    if (step.action === "click" && el) {
+    if (action === "click" && el) {
       el.click();
       return Promise.resolve({ ok: true, detail: "Clicked " + step.target });
     }
-    if (step.action === "assert" && el) {
+    if (action === "assert" && el) {
       var visible = !el.hidden && el.textContent.trim().length > 0;
-      return Promise.resolve({ ok: visible, detail: visible ? step.target + " appeared" : step.target + " not found" });
+      return Promise.resolve({
+        ok: visible,
+        detail: visible ? step.target + " appeared" : step.target + " not found",
+      });
     }
-    return Promise.resolve({ ok: false, detail: "Could not find: " + (step.target || selector || "element") });
+    return Promise.resolve({
+      ok: false,
+      detail: "Could not find: " + (step.target || selector || "element"),
+    });
   }
 
   function appendResult(row) {
     if (!els.results) return;
+    if (els.resultsPanel) els.resultsPanel.hidden = false;
     var empty = els.results.querySelector(".run-results__empty");
     if (empty) empty.remove();
-    var meta = actionMeta(row.action);
     var item = document.createElement("div");
-    item.className = "result-row result-row--" + (row.ok ? "pass" : "fail");
-    item.innerHTML = '<span class="result-row__step">' + meta.icon + " Step " + row.step + '</span><span class="result-row__detail">' + row.detail + "</span>";
+    item.className = "result-item result-item--" + (row.ok ? "pass" : "fail");
+    var meta = actionMeta(row.action);
+    item.innerHTML =
+      '<span class="result-item__mark" aria-hidden="true">' +
+      (row.ok ? "✓" : "✕") +
+      "</span>" +
+      '<div class="result-item__body">' +
+      '<span class="result-item__title">Step ' +
+      row.step +
+      " · " +
+      meta.label +
+      "</span>" +
+      '<span class="result-item__detail">' +
+      escapeHtml(row.detail) +
+      "</span>" +
+      "</div>";
     els.results.appendChild(item);
   }
 
   function setRunningStep(id) {
-    state.steps.forEach(function (s) { delete s._highlight; });
-    var step = state.steps.find(function (s) { return s.id === id; });
-    if (step) step._highlight = true;
+    state.steps.forEach(function (s) {
+      delete s._highlight;
+    });
+    if (id) {
+      var step = state.steps.find(function (s) {
+        return s.id === id;
+      });
+      if (step) {
+        step._highlight = true;
+        expandedSteps[id] = true;
+      }
+    }
     renderSteps();
   }
 
   async function runTest() {
     if (state.running || state.steps.length === 0) return;
-    if (!(await ensurePreviewBeforeDemo())) { showSiteUrlError("Load a preview URL before running the test."); return; }
     state.running = true;
-    if (els.runBtn) els.runBtn.disabled = true;
+    els.runBtn.disabled = true;
     if (els.results) els.results.innerHTML = "";
-    if (els.resultsPanel) els.resultsPanel.hidden = false;
+    if (els.resultsPanel) els.resultsPanel.hidden = true;
+
     setPipeline("run", "Running steps in the live browser…");
+    setBrowserActive(true);
     resetFrame();
-    var doc = await ensureRunnableFrame();
+
+    var doc = getFrameDoc();
     if (!doc) {
-      showFrameNotice("error", blockedNoticeHtml());
-      appendResult({ step: 0, action: "setup", ok: false, detail: "Browser preview isn't reachable — try sample checkout." });
-      state.running = false;
-      if (els.runBtn) els.runBtn.disabled = false;
+      appendResult({
+        step: 0,
+        action: "setup",
+        ok: false,
+        detail: "Browser preview failed to load. Refresh and try again.",
+      });
+      finishRun();
       return;
     }
-    if (state.usingFallback && state.previewUrl) {
-      appendResult({ step: 0, action: "setup", ok: true, detail: "Running on sample checkout (your URL can't be controlled from the demo iframe)." });
-    }
+
     for (var i = 0; i < state.steps.length; i++) {
       var step = state.steps[i];
       setRunningStep(step.id);
       await wait(400);
       var outcome = await runStep(step, doc);
       highlightInFrame(step.selector || resolveSelector(step.target), false);
-      appendResult({ step: i + 1, action: step.action, ok: outcome.ok, detail: outcome.detail });
+      appendResult({
+        step: i + 1,
+        action: step.action,
+        ok: outcome.ok,
+        detail: outcome.detail,
+      });
       if (!outcome.ok) break;
       await wait(300);
     }
+
     setRunningStep(null);
     setPipeline("run", "Test complete — all steps finished.");
+    finishRun();
+  }
+
+  function finishRun() {
     state.running = false;
-    if (els.runBtn) els.runBtn.disabled = false;
+    if (state.steps.length > 0) els.runBtn.disabled = false;
+    setBrowserActive(false);
   }
 
   function resetApp() {
     state.steps = [];
     state.processing = false;
-    state.demoLoaded = false;
-    state.previewUrl = null;
-    state.previewReady = false;
-    state.frameAccess = "unknown";
-    state.frameBlocked = false;
-    state.usingFallback = false;
-    showDemoIdleUI();
+    if (state.videoUrl) {
+      URL.revokeObjectURL(state.videoUrl);
+      state.videoUrl = null;
+    }
+    if (els.uploadDrop) els.uploadDrop.hidden = false;
+    if (els.uploadProgress) els.uploadProgress.hidden = true;
+    if (els.uploadPlayer) els.uploadPlayer.hidden = true;
+    if (els.videoThumb) els.videoThumb.hidden = false;
+    if (els.clipVideo) {
+      els.clipVideo.pause();
+      els.clipVideo.removeAttribute("src");
+      els.clipVideo.load();
+    }
+    if (els.videoInput) els.videoInput.value = "";
+    if (els.transcriptPanel) els.transcriptPanel.hidden = true;
     if (els.resultsPanel) els.resultsPanel.hidden = true;
-    if (els.results) els.results.innerHTML = '<p class="run-results__empty">Results appear here after you run the test.</p>';
+    if (els.results)
+      els.results.innerHTML =
+        '<p class="run-results__empty">Results appear here after you run the test.</p>';
     if (els.progressFill) els.progressFill.style.width = "0%";
     if (els.progressPct) els.progressPct.textContent = "0%";
-    if (els.siteUrl) els.siteUrl.value = "";
-    hideSiteUrlError();
-    hideFrameNotice();
+    expandedSteps = {};
     renderSteps();
     resetFrame();
-    if (els.runBtn) els.runBtn.disabled = true;
-    setPipeline("load", "Where should we run this test? Load a preview URL, then start the demo.");
-    loadPreviewUrl(null, false);
+    els.runBtn.disabled = true;
+    setBrowserActive(false);
+    setPipeline("upload", "Drop a screen recording (.mp4 or .webm) to get started — or try the sample clip.");
+  }
+
+  function initHeroPreview() {
+    var stepsRoot = $("hero-preview-steps");
+    if (!stepsRoot) return;
+    var steps = stepsRoot.querySelectorAll(".hero-preview__step");
+    if (!steps.length) return;
+
+    var times = ["0:08", "0:16", "0:22", "0:31"];
+    var statuses = [
+      "Transcribing narration…",
+      "Generating test steps…",
+      "Running in browser…",
+      "Step passed ✓",
+    ];
+    var idx = 0;
+    var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function setActive(next) {
+      steps.forEach(function (el, i) {
+        el.classList.toggle("hero-preview__step--active", i === next);
+      });
+      var timeEl = $("hero-preview-time");
+      var statusEl = $("hero-preview-status");
+      if (timeEl) timeEl.textContent = times[next] || times[times.length - 1];
+      if (statusEl) statusEl.textContent = statuses[next] || statuses[statuses.length - 1];
+    }
+
+    if (reduced) return;
+
+    setInterval(function () {
+      idx = (idx + 1) % steps.length;
+      setActive(idx);
+    }, 2800);
   }
 
   document.addEventListener("DOMContentLoaded", function () {
     bind();
-    setPipeline("load", "Where should we run this test? Load a preview URL, then start the demo.");
-    loadPreviewUrl(null, false).then(function () {
-      if (location.hash === "#app" && !state.demoLoaded && !state.processing) {
-        setTimeout(startDemo, window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 450);
-      }
-    });
+    initHeroPreview();
   });
 })();

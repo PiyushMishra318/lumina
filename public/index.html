@@ -59,56 +59,45 @@
       <div class="app-shell__head">
         <div>
           <p class="section-title">Try Lumina</p>
-          <h2 class="app-shell__title">See a walkthrough become a test you can edit and rerun</h2>
+          <h2 class="app-shell__title">Upload a walkthrough, edit the steps, watch them run</h2>
         </div>
-      </div>
-
-      <div class="site-url-field" id="site-url-field">
-        <label class="site-url-field__label" for="site-url">Where should we run this test?</label>
-        <p class="site-url-field__hint">Load your page in the live browser preview — step replay runs against whatever is shown there. Leave blank and click Load preview for the built-in sample checkout.</p>
-        <div class="site-url-field__row">
-          <input type="text" id="site-url" class="site-url-field__input" name="site-url" inputmode="url" autocomplete="url" placeholder="https://yoursite.com/checkout" spellcheck="false" aria-describedby="site-url-error" required />
-          <button type="button" class="btn btn--sm" id="load-preview-url">Load preview</button>
-        </div>
-        <p class="site-url-field__error" id="site-url-error" hidden role="alert"></p>
+        <button type="button" class="btn btn--ghost btn--sm" id="use-sample">Use sample clip</button>
       </div>
 
       <div class="pipeline" id="pipeline" aria-live="polite">
-        <div class="pipeline__step is-active" data-stage="load"><span>1</span> Watch walkthrough</div>
-        <div class="pipeline__step" data-stage="transcribe"><span>2</span> Hear the flow</div>
-        <div class="pipeline__step" data-stage="steps"><span>3</span> Build steps</div>
+        <div class="pipeline__step is-active" data-stage="upload"><span>1</span> Upload clip</div>
+        <div class="pipeline__step" data-stage="transcribe"><span>2</span> Transcribe</div>
+        <div class="pipeline__step" data-stage="steps"><span>3</span> Generate steps</div>
         <div class="pipeline__step" data-stage="run"><span>4</span> Run test</div>
       </div>
-      <p class="app-status" id="app-status">Where should we run this test? Load a preview URL, then start the demo.</p>
+      <p class="app-status" id="app-status">Drop a screen recording (.mp4 or .webm) to get started — or try the sample clip.</p>
 
       <div class="app-workspace">
         <aside class="app-pane app-pane--source" aria-label="Recording and transcript">
           <div class="pane-card">
-            <div class="demo-clip" id="demo-clip">
-              <div class="demo-clip__idle" id="demo-idle">
-                <span class="demo-clip__icon" aria-hidden="true">▶</span>
-                <p class="demo-clip__title">Recording 2026-06-02 232143</p>
-                <p class="demo-clip__hint">Watch a real checkout walkthrough. The transcript and steps below are a fixed sample you can edit — deploy Lumina on your stack to turn your own recordings into tests.</p>
-                <button type="button" class="btn" id="start-demo-inline">Start demo</button>
+            <div class="upload-zone" id="upload-zone">
+              <input type="file" id="video-input" accept="video/mp4,video/webm,.mp4,.webm" hidden />
+              <div class="upload-zone__inner" id="upload-drop">
+                <span class="upload-zone__icon" aria-hidden="true">▶</span>
+                <p class="upload-zone__title">Drop your walkthrough here</p>
+                <p class="upload-zone__hint">or <button type="button" class="link-btn" id="browse-btn">browse files</button> · MP4, WebM</p>
               </div>
-              <div class="demo-clip__progress" id="demo-progress" hidden>
-                <div class="demo-clip__thumb" id="video-thumb"></div>
-                <div class="demo-clip__meta">
-                  <strong id="video-name">Recording 2026-06-02 232143.mp4</strong>
+              <div class="upload-zone__progress" id="upload-progress" hidden>
+                <div class="upload-zone__thumb" id="video-thumb"></div>
+                <div class="upload-zone__meta">
+                  <strong id="video-name">recording.mp4</strong>
                   <div class="progress-bar"><div class="progress-bar__fill" id="progress-fill"></div></div>
-                  <span class="demo-clip__pct" id="progress-pct">0%</span>
+                  <span class="upload-zone__pct" id="progress-pct">0%</span>
                 </div>
               </div>
-              <div class="demo-clip__player" id="demo-video-player" hidden>
-                <video id="sample-video" class="demo-clip__player-video" controls playsinline preload="metadata" title="Walkthrough recording">
-                  <source src="sample-walkthrough.mp4" type="video/mp4" />
-                </video>
+              <div class="upload-zone__player" id="upload-player" hidden>
+                <video id="clip-video" class="upload-zone__player-video" controls playsinline preload="metadata" title="Walkthrough recording"></video>
               </div>
             </div>
           </div>
 
           <div class="pane-card transcript-panel" id="transcript-panel" hidden>
-            <h3 class="pane-title">Sample transcript (preset)</h3>
+            <h3 class="pane-title">What Lumina heard</h3>
             <div class="transcript" id="demo-transcript"></div>
           </div>
 
@@ -130,7 +119,7 @@
               </div>
               <button type="button" class="btn btn--ghost btn--sm" id="add-step">Add step</button>
             </div>
-            <p class="editor-empty" id="editor-empty">Editable checkout steps appear here after you start the demo.</p>
+            <p class="editor-empty" id="editor-empty">Steps appear here after your clip is processed.</p>
             <ol class="step-list" id="step-list"></ol>
           </div>
 
@@ -154,8 +143,7 @@
               <span class="browser-stage__label">Live browser</span>
               <span class="browser-stage__url" id="browser-stage-url">sample checkout</span>
             </div>
-            <div class="frame-notice" id="frame-notice" hidden role="status"></div>
-            <iframe id="demo-frame" class="demo-frame" title="Page preview for your test" src="about:blank"></iframe>
+            <iframe id="demo-frame" class="demo-frame" title="Sample checkout app" src="demo-target.html"></iframe>
           </div>
         </aside>
       </div>
