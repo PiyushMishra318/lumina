@@ -284,6 +284,8 @@
     els.siteUrlError = $("site-url-error");
     els.frameNotice = $("frame-notice");
     els.browserStageUrl = $("browser-stage-url");
+    els.demoVideoPlayer = $("demo-video-player");
+    els.sampleVideo = $("sample-video");
 
     if (!els.demoClip) return;
 
@@ -343,10 +345,27 @@
   function showProgressUI() {
     if (els.demoIdle) els.demoIdle.hidden = true;
     if (els.demoProgress) els.demoProgress.hidden = false;
+    if (els.demoVideoPlayer) els.demoVideoPlayer.hidden = true;
     if (els.videoName) els.videoName.textContent = SAMPLE_CLIP_NAME;
     if (els.videoThumb) {
       els.videoThumb.innerHTML =
         '<div class="demo-clip__placeholder" aria-hidden="true"><span>▶</span></div>';
+    }
+  }
+
+  function showWalkthroughVideo() {
+    if (els.demoProgress) els.demoProgress.hidden = true;
+    if (els.demoVideoPlayer) els.demoVideoPlayer.hidden = false;
+    if (els.sampleVideo) {
+      els.sampleVideo.play().catch(function () {});
+    }
+  }
+
+  function hideWalkthroughVideo() {
+    if (els.demoVideoPlayer) els.demoVideoPlayer.hidden = true;
+    if (els.sampleVideo) {
+      els.sampleVideo.pause();
+      els.sampleVideo.currentTime = 0;
     }
   }
 
@@ -375,6 +394,7 @@
     els.transcriptPanel.hidden = false;
     els.runBtn.disabled = false;
 
+    showWalkthroughVideo();
     setPipeline(
       "steps",
       "Sample ready — edit steps, then run the test. Your own videos need self-hosted Lumina (see GitHub)."
@@ -652,6 +672,7 @@
     state.demoLoaded = false;
     if (els.demoIdle) els.demoIdle.hidden = false;
     if (els.demoProgress) els.demoProgress.hidden = true;
+    hideWalkthroughVideo();
     if (els.transcriptPanel) els.transcriptPanel.hidden = true;
     if (els.results) els.results.innerHTML = '<p class="run-results__empty">Results appear here after you run the test.</p>';
     if (els.progressFill) els.progressFill.style.width = "0%";

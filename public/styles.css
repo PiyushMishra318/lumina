@@ -1141,6 +1141,10 @@ main > .card,
 }
 
 /* Website URL */
+.pane-card.site-url-field {
+  margin-bottom: 0;
+}
+
 .site-url-field {
   margin-bottom: 1rem;
   padding: 1rem 1.1rem;
@@ -1197,6 +1201,35 @@ main > .card,
   color: var(--muted);
 }
 
+.site-url-field__row {
+  display: flex;
+  gap: 0.65rem;
+  align-items: stretch;
+}
+
+.site-url-field__row .site-url-field__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.site-url-field__row .btn {
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.site-url-field--required {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.browser-stage .frame-notice {
+  margin: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+
 .frame-notice {
   margin: 0 0 0.65rem;
   padding: 0.65rem 0.75rem;
@@ -1216,6 +1249,14 @@ main > .card,
 .frame-notice--error {
   border-color: color-mix(in srgb, #ef4444 40%, var(--border));
   background: color-mix(in srgb, #ef4444 8%, transparent);
+}
+
+.frame-notice__actions {
+  margin-top: 0.55rem;
+}
+
+.frame-notice .link-btn {
+  font-size: inherit;
 }
 
 /* Demo sample clip */
@@ -1268,12 +1309,31 @@ main > .card,
 }
 
 .demo-clip__thumb {
-  width: 4.5rem;
-  height: 3rem;
+  width: 5.5rem;
+  height: 3.1rem;
   border-radius: 6px;
   overflow: hidden;
   background: var(--border);
   flex-shrink: 0;
+}
+
+.demo-clip__thumb-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.demo-clip__player {
+  padding: 0 1rem 1rem;
+}
+
+.demo-clip__player-video {
+  width: 100%;
+  max-height: 14rem;
+  border-radius: 8px;
+  background: #000;
+  display: block;
 }
 
 .demo-clip__placeholder {
@@ -1406,6 +1466,17 @@ main > .card,
   font-size: 0.75rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+.upload-zone__player {
+  padding: 0 1rem 1rem;
+}
+
+.upload-zone__player-video {
+  width: 100%;
+  border-radius: 8px;
+  background: #000;
+  max-height: 200px;
 }
 
 .transcript-panel .pane-title {

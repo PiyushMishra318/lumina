@@ -6,14 +6,13 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Try Lumina’s interactive sample: walkthrough recordings become editable browser tests. Self-host for your own videos." />
+  <meta name="description" content="Lumina turns product walkthrough recordings into executable website tests." />
   <title>Lumina — Walkthroughs become tests</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="theme-lumina portfolio-designed landing-v2">
   <div class="bg-animation" aria-hidden="true"></div>
 
-  <!-- Landing -->
   <header class="header landing-hero" id="top">
     <div class="landing-hero__wrap">
       <div class="landing-hero__bar">
@@ -56,7 +55,6 @@
   </header>
 
   <main class="page-main main">
-    <!-- App -->
     <section class="card app-shell" id="app">
       <div class="app-shell__head">
         <div>
@@ -91,6 +89,9 @@
                   <div class="progress-bar"><div class="progress-bar__fill" id="progress-fill"></div></div>
                   <span class="upload-zone__pct" id="progress-pct">0%</span>
                 </div>
+              </div>
+              <div class="upload-zone__player" id="upload-player" hidden>
+                <video id="clip-video" class="upload-zone__player-video" controls playsinline preload="metadata" title="Walkthrough recording"></video>
               </div>
             </div>
           </div>
@@ -142,14 +143,12 @@
               <span class="browser-stage__label">Live browser</span>
               <span class="browser-stage__url" id="browser-stage-url">sample checkout</span>
             </div>
-            <p class="frame-notice" id="frame-notice" hidden role="status"></p>
-            <iframe id="demo-frame" class="demo-frame" title="Page preview for your test" src="demo-target.html"></iframe>
+            <iframe id="demo-frame" class="demo-frame" title="Sample checkout app" src="demo-target.html"></iframe>
           </div>
         </aside>
       </div>
     </section>
 
-    <!-- Brief features -->
     <section class="card">
       <p class="section-title">Why Lumina</p>
       <div class="feature-grid">
