@@ -362,15 +362,16 @@
   function animateProgress(from, to, duration) {
     return new Promise(function (resolve) {
       var start = performance.now();
-      function tick(now) {
+      function tick() {
+        var now = performance.now();
         var t = Math.min(1, (now - start) / duration);
         var val = from + (to - from) * t;
         if (els.progressFill) els.progressFill.style.width = val + "%";
         if (els.progressPct) els.progressPct.textContent = Math.round(val) + "%";
-        if (t < 1) requestAnimationFrame(tick);
+        if (t < 1) setTimeout(tick, 16);
         else resolve();
       }
-      requestAnimationFrame(tick);
+      tick();
     });
   }
 
