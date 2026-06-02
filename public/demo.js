@@ -9,6 +9,8 @@
     { value: "wait", label: "Wait", icon: "⏱" },
   ];
 
+  var SAMPLE_CLIP_NAME = "checkout-walkthrough.mp4";
+
   var SAMPLE_TRANSCRIPT = [
     { t: "0:04", text: "I'll walk through applying a promo on checkout." },
     { t: "0:12", text: "Open the checkout page and enter the customer email." },
@@ -43,7 +45,7 @@
     steps: [],
     running: false,
     processing: false,
-    videoUrl: null,
+    demoLoaded: false,
     stepCounter: 0,
   };
 
@@ -82,11 +84,9 @@
   }
 
   function bind() {
-    els.uploadZone = $("upload-zone");
-    els.uploadDrop = $("upload-drop");
-    els.videoInput = $("video-input");
-    els.browseBtn = $("browse-btn");
-    els.uploadProgress = $("upload-progress");
+    els.demoClip = $("demo-clip");
+    els.demoIdle = $("demo-idle");
+    els.demoProgress = $("demo-progress");
     els.videoName = $("video-name");
     els.progressFill = $("progress-fill");
     els.progressPct = $("progress-pct");
@@ -95,7 +95,6 @@
     els.transcript = $("demo-transcript");
     els.stepList = $("step-list");
     els.editorEmpty = $("editor-empty");
-    els.editorPanel = $("editor-panel");
     els.runBtn = $("run-test");
     els.resetBtn = $("reset-app");
     els.results = $("demo-results");
@@ -103,47 +102,33 @@
     els.pipeline = $("pipeline");
     els.status = $("app-status");
     els.addStepBtn = $("add-step");
-    els.useSampleBtn = $("use-sample");
+    els.startDemoBtn = $("start-demo");
+    els.startDemoInline = $("start-demo-inline");
 
-    if (!els.uploadZone) return;
+    if (!els.demoClip) return;
 
-    els.browseBtn.addEventListener("click", function () {
-      els.videoInput.click();
+    var startHandlers = [els.startDemoBtn, els.startDemoInline].filter(Boolean);
+    startHandlers.forEach(function (btn) {
+      btn.addEventListener("click", startDemo);
     });
-    els.videoInput.addEventListener("change", onFileSelected);
-    els.uploadDrop.addEventListener("dragover", onDragOver);
-    els.uploadDrop.addEventListener("dragleave", onDragLeave);
-    els.uploadDrop.addEventListener("drop", onDrop);
     els.runBtn.addEventListener("click", runTest);
     els.resetBtn.addEventListener("click", resetApp);
     els.addStepBtn.addEventListener("click", addBlankStep);
-    els.useSampleBtn.addEventListener("click", useSampleClip);
+    window.addEventListener("hashchange", maybeAutoStartDemo);
   }
 
-  function onDragOver(e) {
-    e.preventDefault();
-    els.uploadZone.classList.add("is-dragover");
+  function isAppSection() {
+    return location.hash === "#app";
   }
 
-  function onDragLeave() {
-    els.uploadZone.classList.remove("is-dragover");
-  }
-
-  function onDrop(e) {
-    e.preventDefault();
-    els.uploadZone.classList.remove("is-dragover");
-    var file = e.dataTransfer.files[0];
-    if (file) processVideo(file);
-  }
-
-  function onFileSelected(e) {
-    var file = e.target.files[0];
-    if (file) processVideo(file);
+  function maybeAutoStartDemo() {
+    if (!isAppSection() || state.demoLoaded || state.processing) return;
+    startDemo();
   }
 
   function setPipeline(stage, label) {
     if (!els.pipeline) return;
-    var order = ["upload", "transcribe", "steps", "run"];
+    var order = ["load", "transcribe", "steps", "run"];
     var idx = order.indexOf(stage);
     els.pipeline.querySelectorAll("[data-stage]").forEach(function (node) {
       var s = node.getAttribute("data-stage");
@@ -170,30 +155,23 @@
     });
   }
 
-  function showUploadUI(file) {
-    els.uploadDrop.hidden = true;
-    els.uploadProgress.hidden = false;
-    if (els.videoName) els.videoName.textContent = file.name;
-    if (state.videoUrl) URL.revokeObjectURL(state.videoUrl);
-    state.videoUrl = URL.createObjectURL(file);
+  function showProgressUI() {
+    if (els.demoIdle) els.demoIdle.hidden = true;
+    if (els.demoProgress) els.demoProgress.hidden = false;
+    if (els.videoName) els.videoName.textContent = SAMPLE_CLIP_NAME;
     if (els.videoThumb) {
-      els.videoThumb.innerHTML = '<video muted playsinline src="' + state.videoUrl + '"></video>';
-      var vid = els.videoThumb.querySelector("video");
-      if (vid) vid.currentTime = 0.5;
+      els.videoThumb.innerHTML =
+        '<div class="demo-clip__placeholder" aria-hidden="true"><span>▶</span></div>';
     }
+    if (els.startDemoBtn) els.startDemoBtn.hidden = true;
   }
 
-  async function processVideo(file) {
-    if (state.processing) return;
-    var valid = /^video\/(mp4|webm)$/i.test(file.type) || /\.(mp4|webm)$/i.test(file.name);
-    if (!valid) {
-      if (els.status) els.status.textContent = "Please upload an MP4 or WebM screen recording.";
-      return;
-    }
+  async function startDemo() {
+    if (state.processing || state.demoLoaded) return;
 
     state.processing = true;
-    showUploadUI(file);
-    setPipeline("upload", "Uploading your clip…");
+    showProgressUI();
+    setPipeline("load", "Loading sample walkthrough…");
     await animateProgress(0, 100, 800);
 
     setPipeline("transcribe", "Transcribing narration from audio…");
@@ -211,11 +189,7 @@
 
     setPipeline("steps", "Steps ready — review, edit, then run the test.");
     state.processing = false;
-  }
-
-  async function useSampleClip() {
-    var fake = new File(["sample"], "checkout-walkthrough.mp4", { type: "video/mp4" });
-    await processVideo(fake);
+    state.demoLoaded = true;
   }
 
   function renderTranscript() {
@@ -258,7 +232,7 @@
         '<button type="button" class="icon-btn" data-move="up" aria-label="Move step up"' + (index === 0 ? " disabled" : "") + ">↑</button>" +
         '<button type="button" class="icon-btn" data-move="down" aria-label="Move step down"' + (index === state.steps.length - 1 ? " disabled" : "") + ">↓</button>" +
         "</div>" +
-        '<button type="button" class="icon-btn icon-btn--danger" data-remove aria-label="Remove step">×</button>' +
+        '<button type="button" class="icon-btn icon-btn--danger" data-remove aria-label="Remove step">×</button>" +
         "</div>" +
         '<label class="step-card__field">' +
         "<span>What to interact with</span>" +
@@ -483,21 +457,19 @@
   function resetApp() {
     state.steps = [];
     state.processing = false;
-    if (state.videoUrl) {
-      URL.revokeObjectURL(state.videoUrl);
-      state.videoUrl = null;
-    }
-    if (els.uploadDrop) els.uploadDrop.hidden = false;
-    if (els.uploadProgress) els.uploadProgress.hidden = true;
-    if (els.videoInput) els.videoInput.value = "";
+    state.demoLoaded = false;
+    if (els.demoIdle) els.demoIdle.hidden = false;
+    if (els.demoProgress) els.demoProgress.hidden = true;
     if (els.transcriptPanel) els.transcriptPanel.hidden = true;
     if (els.results) els.results.innerHTML = '<p class="run-results__empty">Results appear here after you run the test.</p>';
     if (els.progressFill) els.progressFill.style.width = "0%";
     if (els.progressPct) els.progressPct.textContent = "0%";
+    if (els.startDemoBtn) els.startDemoBtn.hidden = false;
     renderSteps();
     resetFrame();
     els.runBtn.disabled = true;
-    setPipeline("upload", "Drop a screen recording (.mp4 or .webm) to get started.");
+    setPipeline("load", "Press Start demo to load the sample walkthrough.");
+    if (isAppSection()) startDemo();
   }
 
   function initHeroPreview() {
@@ -537,5 +509,10 @@
   document.addEventListener("DOMContentLoaded", function () {
     bind();
     initHeroPreview();
+    if (isAppSection()) {
+      startDemo();
+    } else {
+      setPipeline("load", "Press Start demo to load the sample walkthrough.");
+    }
   });
 })();

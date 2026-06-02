@@ -72,70 +72,79 @@
         <div class="pipeline__step" data-stage="steps"><span>3</span> Generate steps</div>
         <div class="pipeline__step" data-stage="run"><span>4</span> Run test</div>
       </div>
-      <p class="app-status" id="app-status">Drop a screen recording (.mp4 or .webm) to get started.</p>
+      <p class="app-status" id="app-status">Drop a screen recording (.mp4 or .webm) to get started — or try the sample clip.</p>
 
-      <div class="app-grid">
-        <div class="app-col app-col--input">
-          <div class="upload-zone" id="upload-zone">
-            <input type="file" id="video-input" accept="video/mp4,video/webm,.mp4,.webm" hidden />
-            <div class="upload-zone__inner" id="upload-drop">
-              <span class="upload-zone__icon" aria-hidden="true">▶</span>
-              <p class="upload-zone__title">Drop your walkthrough here</p>
-              <p class="upload-zone__hint">or <button type="button" class="link-btn" id="browse-btn">browse files</button> · MP4, WebM</p>
-            </div>
-            <div class="upload-zone__progress" id="upload-progress" hidden>
-              <div class="upload-zone__thumb" id="video-thumb"></div>
-              <div class="upload-zone__meta">
-                <strong id="video-name">recording.mp4</strong>
-                <div class="progress-bar"><div class="progress-bar__fill" id="progress-fill"></div></div>
-                <span class="upload-zone__pct" id="progress-pct">0%</span>
+      <div class="app-workspace">
+        <aside class="app-pane app-pane--source" aria-label="Recording and transcript">
+          <div class="pane-card">
+            <div class="upload-zone" id="upload-zone">
+              <input type="file" id="video-input" accept="video/mp4,video/webm,.mp4,.webm" hidden />
+              <div class="upload-zone__inner" id="upload-drop">
+                <span class="upload-zone__icon" aria-hidden="true">▶</span>
+                <p class="upload-zone__title">Drop your walkthrough here</p>
+                <p class="upload-zone__hint">or <button type="button" class="link-btn" id="browse-btn">browse files</button> · MP4, WebM</p>
+              </div>
+              <div class="upload-zone__progress" id="upload-progress" hidden>
+                <div class="upload-zone__thumb" id="video-thumb"></div>
+                <div class="upload-zone__meta">
+                  <strong id="video-name">recording.mp4</strong>
+                  <div class="progress-bar"><div class="progress-bar__fill" id="progress-fill"></div></div>
+                  <span class="upload-zone__pct" id="progress-pct">0%</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="transcript-panel" id="transcript-panel" hidden>
-            <h3 class="panel-heading">What Lumina heard</h3>
+          <div class="pane-card transcript-panel" id="transcript-panel" hidden>
+            <h3 class="pane-title">What Lumina heard</h3>
             <div class="transcript" id="demo-transcript"></div>
           </div>
 
-          <div class="coming-soon-card" aria-disabled="true">
-            <div class="coming-soon-card__head">
-              <h3 class="panel-heading">Record on your site</h3>
-              <span class="badge-soon">Coming soon</span>
-            </div>
-            <p class="coming-soon-card__text">Embed Lumina on any page to capture clicks and narration in place — no screen recorder needed.</p>
-            <div class="coming-soon-card__mock">
-              <span>your-app.com</span>
-              <span class="coming-soon-card__overlay">iframe recorder</span>
-            </div>
-          </div>
-        </div>
+          <details class="pane-card pane-card--muted coming-soon-card">
+            <summary class="coming-soon-card__summary">
+              <span class="pane-title">Record on your site</span>
+              <span class="badge-soon">Soon</span>
+            </summary>
+            <p class="coming-soon-card__text">Embed Lumina to capture clicks and narration in place — no screen recorder needed.</p>
+          </details>
+        </aside>
 
-        <div class="app-col app-col--editor">
-          <div class="editor-panel" id="editor-panel">
+        <div class="app-pane app-pane--steps" aria-label="Test steps and results">
+          <div class="pane-card editor-panel" id="editor-panel">
             <div class="editor-panel__head">
-              <h3 class="panel-heading">Test steps</h3>
-              <button type="button" class="btn btn--ghost btn--sm" id="add-step">+ Add step</button>
+              <div>
+                <h3 class="pane-title">Your test steps</h3>
+                <p class="pane-subtitle">Tap a step to edit details</p>
+              </div>
+              <button type="button" class="btn btn--ghost btn--sm" id="add-step">Add step</button>
             </div>
             <p class="editor-empty" id="editor-empty">Steps appear here after your clip is processed.</p>
             <ol class="step-list" id="step-list"></ol>
           </div>
 
-          <div class="run-panel">
-            <div class="run-panel__actions">
-              <button type="button" class="btn" id="run-test" disabled>Run test</button>
-              <button type="button" class="btn btn--ghost" id="reset-app">Reset</button>
-            </div>
+          <div class="run-bar">
+            <button type="button" class="btn btn--run" id="run-test" disabled>Run test in browser</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="reset-app">Reset</button>
+          </div>
+
+          <div class="pane-card results-panel" id="results-panel" hidden>
+            <h3 class="pane-title">Run summary</h3>
             <div class="run-results" id="demo-results">
               <p class="run-results__empty">Results appear here after you run the test.</p>
             </div>
           </div>
         </div>
 
-        <div class="app-col app-col--preview">
-          <h3 class="panel-heading">Live browser</h3>
-          <iframe id="demo-frame" class="demo-frame" title="Sample checkout app" src="demo-target.html"></iframe>
-        </div>
+        <aside class="app-pane app-pane--stage" aria-label="Live browser preview">
+          <div class="browser-stage">
+            <div class="browser-stage__chrome">
+              <span class="browser-stage__dot" aria-hidden="true"></span>
+              <span class="browser-stage__label">Live browser</span>
+              <span class="browser-stage__url">demo checkout</span>
+            </div>
+            <iframe id="demo-frame" class="demo-frame" title="Sample checkout app" src="demo-target.html"></iframe>
+          </div>
+        </aside>
       </div>
     </section>
 
