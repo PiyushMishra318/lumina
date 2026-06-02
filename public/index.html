@@ -6,29 +6,162 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Work+Sans:wght@400;600&display=swap" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Self-hosted service that generates and executes website test cases from video + audio recordings — Whisper transcription, Ollama test generation, Playwright execution." />
-  <title>Lumina</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <meta name="description" content="Lumina turns product walkthrough recordings into executable website tests — spotlight testing for teams who ship fast." />
+  <title>Lumina — Walkthroughs become tests</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="theme-lumina portfolio-designed landing-page">
+<body class="theme-lumina portfolio-designed landing-v2 landing-page">
   <div class="bg-animation" aria-hidden="true"></div>
-  <header class="header landing-hero">
-        <div class="header__top">
+  <header class="header landing-hero landing-hero--split">
+    <div class="header__top">
       <a class="header__brand" href="https://piyushm.dev">piyushm.dev</a>
-      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme" title="Toggle theme"><span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">&#9728;</span><span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">&#9789;</span></button>
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme" title="Toggle theme">
+        <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">&#9728;</span>
+        <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">&#9789;</span>
+      </button>
     </div>
-<div class="header__inner">
-    <span class="badge">Python · Playwright · Whisper</span>
-    <h1>Lumina</h1>
-    <p>Self-hosted service that generates and executes website test cases from video + audio recordings — Whisper transcription, Ollama test generation, Playwright execution.</p>
-  
-      <a class="header__github" href="https://github.com/PiyushMishra318/lumina" target="_blank" rel="noopener noreferrer">View on GitHub</a>
-    </div></header>
-  <main class="page-main main"><section class="card"><h2>Features</h2><div class="feature-grid"><div class="feature-tile"><strong>Extract and transcribe Loom-style recordings locally</strong><span></span></div><div class="feature-tile"><strong>AI-generated structured test cases via Ollama</strong><span></span></div><div class="feature-tile"><strong>Playwright/Chrome execution with failure screenshots</strong><span></span></div></div><div class="actions"><a class="btn" href="https://github.com/PiyushMishra318/lumina">View on GitHub</a></div></section><section class="card"><h2>Self-hosted setup</h2><pre>python -m venv venv
+    <div class="header__inner">
+      <p class="eyebrow">Spotlight testing for the web</p>
+      <h1>Turn walkthroughs into tests</h1>
+      <p class="header__lead">Record how your product works — Lumina listens, understands the flow, and runs those steps in a real browser so regressions surface before your users find them.</p>
+      <div class="hero-cta">
+        <a class="btn" href="#try-lumina">Try the demo</a>
+        <a class="btn btn--ghost" href="https://github.com/PiyushMishra318/lumina" target="_blank" rel="noopener noreferrer">Self-host on GitHub</a>
+      </div>
+    </div>
+    <aside class="hero-panel hero-panel--flow" aria-label="How Lumina works">
+      <span class="hero-panel__label">The flow</span>
+      <ol class="flow-list">
+        <li><strong>Record</strong> a Loom-style product walkthrough</li>
+        <li><strong>Understand</strong> narration and on-screen actions</li>
+        <li><strong>Run</strong> generated checks and capture failures</li>
+      </ol>
+    </aside>
+  </header>
+
+  <main class="page-main main">
+    <div class="stat-strip stat-strip--product">
+      <div class="stat-strip__item">
+        <span class="stat-strip__value">Minutes</span>
+        <span class="stat-strip__label">Not days writing brittle scripts</span>
+      </div>
+      <div class="stat-strip__item">
+        <span class="stat-strip__value">Your stack</span>
+        <span class="stat-strip__label">Tests follow the UI users actually see</span>
+      </div>
+      <div class="stat-strip__item">
+        <span class="stat-strip__value">Self-hosted</span>
+        <span class="stat-strip__label">Recordings stay on your infrastructure</span>
+      </div>
+    </div>
+
+    <section class="card" id="try-lumina">
+      <p class="section-title">Try Lumina</p>
+      <p class="demo-intro">This interactive demo shows what Lumina does: a narrated checkout walkthrough becomes structured test steps, then runs against a sample app in your browser. The full pipeline runs locally when you self-host.</p>
+
+      <div class="demo-progress" id="demo-progress" aria-live="polite">
+        <div class="demo-progress__step is-active" data-step="1"><span>1</span> Ingest recording</div>
+        <div class="demo-progress__step" data-step="2"><span>2</span> Generate tests</div>
+        <div class="demo-progress__step" data-step="3"><span>3</span> Execute in browser</div>
+        <div class="demo-progress__step" data-step="4"><span>4</span> Report</div>
+      </div>
+      <p class="demo-status" id="demo-status">Sample walkthrough loaded — press Run demo to start.</p>
+
+      <div class="demo-grid">
+        <div class="demo-panel">
+          <h2 class="demo-panel__title">Narration from recording</h2>
+          <div class="transcript" id="demo-transcript"></div>
+        </div>
+        <div class="demo-panel">
+          <h2 class="demo-panel__title">Generated test steps</h2>
+          <pre class="demo-code" id="demo-tests"></pre>
+        </div>
+        <div class="demo-panel demo-panel--wide">
+          <h2 class="demo-panel__title">Live browser under test</h2>
+          <iframe id="demo-frame" class="demo-frame" title="Sample checkout app" src="demo-target.html"></iframe>
+        </div>
+        <div class="demo-panel">
+          <h2 class="demo-panel__title">Run results</h2>
+          <div class="demo-results" id="demo-results">
+            <p class="demo-results__empty">Results appear here after you run the demo.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions demo-actions">
+        <button type="button" class="btn" id="demo-run">Run demo</button>
+        <button type="button" class="btn btn--ghost" id="demo-reset">Reset</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <p class="section-title">Why teams use Lumina</p>
+      <div class="feature-grid">
+        <div class="feature-tile">
+          <strong>Speak your flow</strong>
+          <span>PMs and designers record how features should work — no test DSL required upfront.</span>
+        </div>
+        <div class="feature-tile">
+          <strong>Catch UI regressions</strong>
+          <span>Failed steps save screenshots so you see exactly what broke, not just a red X.</span>
+        </div>
+        <div class="feature-tile">
+          <strong>Own your data</strong>
+          <span>Run the full pipeline on your machines; integrate with Lampshade for spotlight coverage.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <p class="section-title">How it works</p>
+      <div class="workflow">
+        <div class="workflow__step">
+          <div>
+            <strong>Share a walkthrough</strong>
+            <span>Point Lumina at a screen recording with narration — the kind you already send to stakeholders.</span>
+          </div>
+        </div>
+        <div class="workflow__step">
+          <div>
+            <strong>Get executable checks</strong>
+            <span>Lumina infers clicks, fills, and expectations from what was said and shown on screen.</span>
+          </div>
+        </div>
+        <div class="workflow__step">
+          <div>
+            <strong>Ship with confidence</strong>
+            <span>Re-run after every deploy; JSON reports and failure screenshots keep the team aligned.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div>
+        <strong>Run the full pipeline locally</strong>
+        <p>Clone the repo, add your recording and target URL, and Lumina handles the rest.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="https://github.com/PiyushMishra318/lumina">Get started on GitHub</a>
+        <a class="btn btn--ghost" href="https://github.com/PiyushMishra318/lumina#usage">Read setup guide</a>
+      </div>
+    </section>
+
+    <section class="card card--muted">
+      <p class="section-title">Local quick start</p>
+      <p class="card__hint">For the real video → test → Playwright pipeline, install dependencies once:</p>
+      <pre>git clone https://github.com/PiyushMishra318/lumina.git
+cd lumina && python -m venv venv
 pip install -r requirements.txt
-playwright install chromium
-# Requires Ollama at http://localhost:11434</pre><p>Designed to integrate with Lampshade for spotlight testing.</p></section></main>
-  <footer class="site-footer footer"><p>MIT © 2026 · <a href="https://piyushm.dev">piyushm.dev</a> · <a href="https://github.com/PiyushMishra318/lumina" target="_blank" rel="noopener noreferrer">View on GitHub</a></p></footer>
-  <script src="/theme.js"></script>
+python -m playwright install chromium
+python lumina/main.py --video your-walkthrough.mp4 --url https://yoursite.com</pre>
+    </section>
+  </main>
+
+  <footer class="site-footer footer">
+    <p>MIT © 2026 · <a href="https://piyushm.dev">piyushm.dev</a> · <a href="https://github.com/PiyushMishra318/lumina" target="_blank" rel="noopener noreferrer">GitHub</a></p>
+  </footer>
+  <script src="theme.js"></script>
+  <script src="demo.js"></script>
 </body>
 </html>

@@ -149,3 +149,4 @@ cython_debug/
 Thumbs.db
 
 *_venv/
+.vercel
