@@ -1008,12 +1008,18 @@
     setTimeout(runSample, reduced ? 0 : 450);
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+  function boot() {
     bind();
     initHeroPreview();
     if (!els.app) return;
     loadPreviewUrl(null, false).then(function () {
       maybeAutoStartSample();
     });
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
 })();

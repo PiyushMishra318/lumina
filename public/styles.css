@@ -1586,6 +1586,7 @@ main > .card,
 }
 
 .step-card {
+  container-type: inline-size;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: color-mix(in srgb, var(--bg) 25%, var(--surface));
@@ -1656,22 +1657,37 @@ main > .card,
 }
 
 .step-card__toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.65rem;
-  align-items: end;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-@media (max-width: 520px) {
+.step-card__reorder {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+@container (min-width: 28rem) {
   .step-card__toolbar {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.5rem 0.65rem;
+  }
+
+  .step-card__field--action {
+    flex: 1 1 12rem;
+    min-width: min(100%, 12rem);
   }
 
   .step-card__reorder {
-    justify-content: flex-end;
-    padding-top: 0.35rem;
-    border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding-top: 0;
+    border-top: none;
   }
 }
 
@@ -1729,13 +1745,6 @@ main > .card,
 .step-card__select:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
-}
-
-.step-card__reorder {
-  display: flex;
-  gap: 0.35rem;
-  flex-shrink: 0;
-  align-items: center;
 }
 
 .icon-btn {
