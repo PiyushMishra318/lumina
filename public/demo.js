@@ -10,9 +10,17 @@
   ];
 
   var SAMPLE_VIDEO_PATH = "sample-walkthrough.mp4";
-  var SAMPLE_CLIP_NAME = "checkout-walkthrough.mp4";
+  var SAMPLE_CLIP_NAME = "Recording 2026-06-02 232143.mp4";
+  var FALLBACK_FRAME = "demo-target.html";
+  var SAMPLE_FRAME_LABEL = "sample checkout";
+  var PIPELINE_ORDER = ["upload", "transcribe", "steps", "run"];
 
   var SAMPLE_TRANSCRIPT = [
+    {
+      t: "—",
+      text:
+        "This static demo does not run Whisper in the browser. The lines below are a preset checkout illustration — self-host Lumina for real transcription.",
+    },
     { t: "0:04", text: "I'll walk through applying a promo on checkout." },
     { t: "0:12", text: "Open the checkout page and enter the customer email." },
     { t: "0:22", text: "Type SAVE10 in the promo field, then hit Apply discount." },
@@ -42,14 +50,19 @@
     status: "#status",
   };
 
-  var PIPELINE_ORDER = ["upload", "transcribe", "steps", "run"];
-
   var state = {
     steps: [],
     running: false,
     processing: false,
+    clipLoaded: false,
     videoUrl: null,
     stepCounter: 0,
+    previewUrl: null,
+    previewReady: false,
+    frameAccess: "unknown",
+    frameBlocked: false,
+    usingFallback: false,
+    frameLoadToken: 0,
   };
 
   var expandedSteps = {};
@@ -115,7 +128,221 @@
     return state.steps.length <= 2 || index === 0;
   }
 
+  function normalizeUrl(raw) {
+    var trimmed = (raw || "").trim();
+    if (!trimmed) return { ok: true, url: null };
+    if (/^demo-target\.html$/i.test(trimmed)) {
+      return { ok: true, url: new URL(FALLBACK_FRAME, window.location.href).href };
+    }
+    var candidate = /^https?:\/\//i.test(trimmed) ? trimmed : "https://" + trimmed;
+    try {
+      var parsed = new URL(candidate);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return { ok: false, error: "Please enter a web address (http:// or https://)." };
+      }
+      return { ok: true, url: parsed.href };
+    } catch (e) {
+      return { ok: false, error: "That doesn't look like a valid URL. Try https://your-app.com/checkout" };
+    }
+  }
+
+  function isSameOriginUrl(url) {
+    try {
+      return new URL(url, window.location.href).origin === window.location.origin;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function formatUrlForChrome(url) {
+    if (!url) return SAMPLE_FRAME_LABEL;
+    try {
+      var u = new URL(url);
+      if (u.pathname.endsWith(FALLBACK_FRAME)) return SAMPLE_FRAME_LABEL;
+      var label = u.hostname.replace(/^www\./, "") + (u.pathname === "/" ? "" : u.pathname);
+      return label.length > 42 ? label.slice(0, 39) + "…" : label;
+    } catch (e) {
+      return "your site";
+    }
+  }
+
+  function setFrameSrc(src) {
+    if (els.frame && els.frame.getAttribute("src") !== src) els.frame.setAttribute("src", src);
+  }
+
+  function showSiteUrlError(message) {
+    if (!els.siteUrl) return;
+    els.siteUrl.classList.add("is-invalid");
+    if (els.siteUrlField) els.siteUrlField.classList.add("site-url-field--required");
+    if (els.siteUrlError) {
+      els.siteUrlError.hidden = false;
+      els.siteUrlError.textContent = message;
+    }
+  }
+
+  function hideSiteUrlError() {
+    if (!els.siteUrl) return;
+    els.siteUrl.classList.remove("is-invalid");
+    if (els.siteUrlField) els.siteUrlField.classList.remove("site-url-field--required");
+    if (els.siteUrlError) {
+      els.siteUrlError.hidden = true;
+      els.siteUrlError.textContent = "";
+    }
+  }
+
+  function showFrameNotice(kind, html) {
+    if (!els.frameNotice) return;
+    els.frameNotice.hidden = false;
+    els.frameNotice.innerHTML = html;
+    els.frameNotice.className =
+      "frame-notice" +
+      (kind === "warn" ? " frame-notice--warn" : kind === "error" ? " frame-notice--error" : "");
+    var btn = els.frameNotice.querySelector("[data-use-sample-checkout]");
+    if (btn) btn.addEventListener("click", useSampleCheckout);
+  }
+
+  function hideFrameNotice() {
+    if (!els.frameNotice) return;
+    els.frameNotice.hidden = true;
+    els.frameNotice.innerHTML = "";
+    els.frameNotice.className = "frame-notice";
+  }
+
+  function blockedNoticeHtml() {
+    return (
+      "<strong>This site can't be embedded here.</strong> Many pages block iframe previews. " +
+      '<span class="frame-notice__actions"><button type="button" class="link-btn" data-use-sample-checkout>Use sample checkout instead</button></span>'
+    );
+  }
+
+  function crossOriginNoticeHtml() {
+    return (
+      "<strong>Preview loaded, but step replay can't control this page.</strong> Cross-origin iframes block script access. " +
+      '<button type="button" class="link-btn" data-use-sample-checkout>Use sample checkout</button> to see the full demo.'
+    );
+  }
+
+  function assessFrameAccess() {
+    if (!els.frame) return "missing";
+    try {
+      var doc = els.frame.contentDocument || els.frame.contentWindow.document;
+      if (!doc || !doc.body || !doc.body.childNodes.length) return "blocked";
+      return "ok";
+    } catch (e) {
+      return state.previewUrl && !isSameOriginUrl(state.previewUrl) ? "cross-origin" : "blocked";
+    }
+  }
+
+  function loadPreviewUrl(url, showLoading) {
+    state.frameLoadToken += 1;
+    var token = state.frameLoadToken;
+    state.previewUrl = url;
+    state.previewReady = false;
+    state.frameBlocked = false;
+    state.usingFallback = !url;
+    var targetUrl = url || new URL(FALLBACK_FRAME, window.location.href).href;
+    if (els.browserStageUrl) els.browserStageUrl.textContent = formatUrlForChrome(url);
+    if (showLoading && url) showFrameNotice("info", "Loading your site in the live preview…");
+    else if (!url) hideFrameNotice();
+
+    return new Promise(function (resolve) {
+      if (!els.frame) {
+        resolve({ ok: false });
+        return;
+      }
+      var timeout = setTimeout(function () {
+        finish({ ok: false, reason: "timeout" });
+      }, 15000);
+
+      function finish(result) {
+        clearTimeout(timeout);
+        els.frame.removeEventListener("load", onLoad);
+        resolve(result);
+      }
+
+      function onLoad() {
+        setTimeout(function () {
+          if (token !== state.frameLoadToken) return;
+          var access = assessFrameAccess();
+          state.frameAccess = access;
+          if (access === "ok") {
+            hideFrameNotice();
+            state.previewReady = true;
+            finish({ ok: true, access: access });
+            return;
+          }
+          if (access === "cross-origin" && url) {
+            state.previewReady = true;
+            showFrameNotice("warn", crossOriginNoticeHtml());
+            finish({ ok: true, access: access, crossOrigin: true });
+            return;
+          }
+          state.frameBlocked = true;
+          showFrameNotice("error", blockedNoticeHtml());
+          finish({ ok: false, reason: "blocked", access: access });
+        }, 350);
+      }
+
+      els.frame.addEventListener("load", onLoad);
+      setFrameSrc(targetUrl);
+    });
+  }
+
+  function useSampleCheckout() {
+    if (els.siteUrl) els.siteUrl.value = "";
+    hideSiteUrlError();
+    state.previewUrl = null;
+    state.frameBlocked = false;
+    state.usingFallback = true;
+    loadPreviewUrl(null, false);
+    if (els.status && !state.clipLoaded) {
+      els.status.textContent = "Sample checkout loaded — upload a clip or click Run sample.";
+    }
+  }
+
+  function applySiteUrlFromInput() {
+    var result = normalizeUrl(els.siteUrl ? els.siteUrl.value : "");
+    if (!result.ok) showSiteUrlError(result.error);
+    else hideSiteUrlError();
+    return result;
+  }
+
+  async function onLoadPreviewClick() {
+    var result = applySiteUrlFromInput();
+    if (!result.ok) return;
+    if (els.loadPreviewBtn) els.loadPreviewBtn.disabled = true;
+    await loadPreviewUrl(result.url, !!result.url);
+    if (els.loadPreviewBtn) els.loadPreviewBtn.disabled = false;
+    if (els.status && !state.clipLoaded) {
+      els.status.textContent = result.url
+        ? "Preview loaded — upload a clip or click Run sample."
+        : "Sample checkout loaded — upload a clip or click Run sample.";
+    }
+  }
+
+  async function ensurePreviewBeforeRun() {
+    if (state.previewReady && !state.frameBlocked) return true;
+    var result = applySiteUrlFromInput();
+    if (!result.ok) return false;
+    var outcome = await loadPreviewUrl(result.url, !!result.url);
+    return outcome.ok || outcome.crossOrigin;
+  }
+
+  async function ensureRunnableFrame() {
+    var doc = getFrameDoc();
+    if (doc && state.frameAccess === "ok" && !state.usingFallback) return doc;
+    if (state.previewUrl && state.frameAccess === "cross-origin") {
+      showFrameNotice("warn", crossOriginNoticeHtml());
+    }
+    setFrameSrc(new URL(FALLBACK_FRAME, window.location.href).href);
+    state.usingFallback = true;
+    if (els.browserStageUrl) els.browserStageUrl.textContent = SAMPLE_FRAME_LABEL;
+    await wait(450);
+    return getFrameDoc();
+  }
+
   function bind() {
+    els.app = $("app");
     els.uploadZone = $("upload-zone");
     els.uploadDrop = $("upload-drop");
     els.videoInput = $("video-input");
@@ -139,35 +366,54 @@
     els.pipeline = $("pipeline");
     els.status = $("app-status");
     els.addStepBtn = $("add-step");
-    els.useSampleBtn = $("use-sample");
+    els.runSampleBtn = $("run-sample");
+    els.siteUrl = $("site-url");
+    els.siteUrlField = $("site-url-field");
+    els.siteUrlError = $("site-url-error");
+    els.loadPreviewBtn = $("load-preview-url");
+    els.frameNotice = $("frame-notice");
+    els.browserStageUrl = $("browser-stage-url");
 
-    if (!els.uploadZone) return;
+    if (!els.app || !els.frame) return;
 
-    els.browseBtn.addEventListener("click", function () {
-      els.videoInput.click();
-    });
-    els.videoInput.addEventListener("change", onFileSelected);
-    els.uploadDrop.addEventListener("dragover", onDragOver);
-    els.uploadDrop.addEventListener("dragleave", onDragLeave);
-    els.uploadDrop.addEventListener("drop", onDrop);
-    els.runBtn.addEventListener("click", runTest);
-    els.resetBtn.addEventListener("click", resetApp);
-    els.addStepBtn.addEventListener("click", addBlankStep);
-    els.useSampleBtn.addEventListener("click", useSampleClip);
+    if (els.browseBtn && els.videoInput) {
+      els.browseBtn.addEventListener("click", function () {
+        els.videoInput.click();
+      });
+      els.videoInput.addEventListener("change", onFileSelected);
+    }
+    if (els.uploadDrop) {
+      els.uploadDrop.addEventListener("dragover", onDragOver);
+      els.uploadDrop.addEventListener("dragleave", onDragLeave);
+      els.uploadDrop.addEventListener("drop", onDrop);
+    }
+    if (els.runBtn) els.runBtn.addEventListener("click", runTest);
+    if (els.resetBtn) els.resetBtn.addEventListener("click", resetApp);
+    if (els.addStepBtn) els.addStepBtn.addEventListener("click", addBlankStep);
+    if (els.runSampleBtn) els.runSampleBtn.addEventListener("click", runSample);
+    if (els.loadPreviewBtn) els.loadPreviewBtn.addEventListener("click", onLoadPreviewClick);
+    if (els.siteUrl) {
+      els.siteUrl.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          onLoadPreviewClick();
+        }
+      });
+    }
   }
 
   function onDragOver(e) {
     e.preventDefault();
-    els.uploadZone.classList.add("is-dragover");
+    if (els.uploadZone) els.uploadZone.classList.add("is-dragover");
   }
 
   function onDragLeave() {
-    els.uploadZone.classList.remove("is-dragover");
+    if (els.uploadZone) els.uploadZone.classList.remove("is-dragover");
   }
 
   function onDrop(e) {
     e.preventDefault();
-    els.uploadZone.classList.remove("is-dragover");
+    if (els.uploadZone) els.uploadZone.classList.remove("is-dragover");
     var file = e.dataTransfer.files[0];
     if (file) processVideo(file);
   }
@@ -181,10 +427,9 @@
     if (!els.pipeline) return;
     var idx = PIPELINE_ORDER.indexOf(stage);
     els.pipeline.querySelectorAll("[data-stage]").forEach(function (node) {
-      var s = node.getAttribute("data-stage");
-      var si = PIPELINE_ORDER.indexOf(s);
+      var si = PIPELINE_ORDER.indexOf(node.getAttribute("data-stage"));
       node.classList.remove("is-active", "is-done");
-      if (si < idx) node.classList.add("is-done");
+      if (si >= 0 && si < idx) node.classList.add("is-done");
       if (si === idx) node.classList.add("is-active");
     });
     if (els.status) els.status.textContent = label;
@@ -206,8 +451,8 @@
   }
 
   function showClipPlayer(src, isBlob) {
-    els.uploadDrop.hidden = true;
-    els.uploadProgress.hidden = false;
+    if (els.uploadDrop) els.uploadDrop.hidden = true;
+    if (els.uploadProgress) els.uploadProgress.hidden = false;
     if (els.uploadPlayer) els.uploadPlayer.hidden = false;
     if (els.clipVideo) {
       if (isBlob && state.videoUrl) URL.revokeObjectURL(state.videoUrl);
@@ -228,44 +473,70 @@
     showClipPlayer(URL.createObjectURL(file), true);
   }
 
-  async function processVideo(file) {
+  function showUploadIdleUI() {
+    if (els.uploadDrop) els.uploadDrop.hidden = false;
+    if (els.uploadProgress) els.uploadProgress.hidden = true;
+    if (els.uploadPlayer) els.uploadPlayer.hidden = true;
+    if (els.videoThumb) els.videoThumb.hidden = false;
+  }
+
+  async function processVideo(file, opts) {
+    opts = opts || {};
     if (state.processing) return;
-    var valid = /^video\/(mp4|webm)$/i.test(file.type) || /\.(mp4|webm)$/i.test(file.name);
-    if (!valid) {
-      if (els.status) els.status.textContent = "Please upload an MP4 or WebM screen recording.";
-      return;
+
+    if (!opts.useBundledSample) {
+      var valid = /^video\/(mp4|webm)$/i.test(file.type) || /\.(mp4|webm)$/i.test(file.name);
+      if (!valid) {
+        if (els.status) els.status.textContent = "Please upload an MP4 or WebM screen recording.";
+        return;
+      }
     }
 
     state.processing = true;
-    showUploadUI(file);
-    setPipeline("upload", "Uploading your clip…");
+    state.clipLoaded = false;
+
+    if (opts.useBundledSample) {
+      if (els.videoName) els.videoName.textContent = SAMPLE_CLIP_NAME;
+      showClipPlayer(SAMPLE_VIDEO_PATH, false);
+    } else {
+      showUploadUI(file);
+    }
+
+    setPipeline("upload", opts.useBundledSample ? "Loading sample walkthrough…" : "Loading your clip…");
     await animateProgress(0, 100, 800);
 
-    setPipeline("transcribe", "Transcribing narration from audio…");
+    setPipeline(
+      "transcribe",
+      "Showing preset transcript — Whisper needs self-hosted Lumina; we can't transcribe in the browser."
+    );
     await animateProgress(0, 100, 1400);
     renderTranscript();
+    if (els.transcriptPanel) els.transcriptPanel.hidden = false;
 
-    setPipeline("steps", "Turning walkthrough into editable test steps…");
+    setPipeline("steps", "Loading preset checkout steps you can edit…");
     await wait(900);
     expandedSteps = {};
     state.steps = DEFAULT_STEPS.map(function (s) {
       return { id: uid(), action: s.action, target: s.target, value: s.value, selector: s.selector };
     });
     renderSteps();
-    els.transcriptPanel.hidden = false;
-    els.runBtn.disabled = false;
+    if (els.runBtn) els.runBtn.disabled = false;
 
-    setPipeline("steps", "Steps ready — review, edit, then run the test.");
+    setPipeline(
+      "steps",
+      "Ready — your video plays above; transcript and steps are presets until you self-host Lumina."
+    );
     state.processing = false;
+    state.clipLoaded = true;
   }
 
-  async function useSampleClip() {
-    if (els.videoName) els.videoName.textContent = SAMPLE_CLIP_NAME;
-    showClipPlayer(SAMPLE_VIDEO_PATH, false);
-    var fake = new File(["sample"], SAMPLE_CLIP_NAME, { type: "video/mp4" });
-    els.uploadDrop.hidden = true;
-    els.uploadProgress.hidden = false;
-    await processVideo(fake);
+  async function runSample() {
+    if (state.processing) return;
+    await loadPreviewUrl(
+      normalizeUrl(els.siteUrl ? els.siteUrl.value : "").url,
+      !!(els.siteUrl && els.siteUrl.value.trim())
+    );
+    await processVideo(null, { useBundledSample: true });
   }
 
   function renderTranscript() {
@@ -343,7 +614,7 @@
           );
         }).join("") +
         "</select></label>" +
-        '<div class="step-card__reorder" role="group" aria-label="Reorder step">' +
+        '<div class="step-card__reorder">' +
         '<button type="button" class="icon-btn" data-move="up" aria-label="Move step up"' +
         (index === 0 ? " disabled" : "") +
         ">↑</button>" +
@@ -352,11 +623,11 @@
         ">↓</button>" +
         '<button type="button" class="icon-btn icon-btn--danger" data-remove aria-label="Remove step">×</button>' +
         "</div></div>" +
-        '<label class="step-card__field">On<input type="text" data-field="target" value="' +
+        '<label class="step-card__label">On<input type="text" data-field="target" value="' +
         escapeAttr(step.target) +
         '" placeholder="e.g. Email field, Submit button" /></label>' +
         (needsValue
-          ? '<label class="step-card__field">' +
+          ? '<label class="step-card__label">' +
             valueLabel +
             '<input type="text" data-field="value" value="' +
             escapeAttr(step.value) +
@@ -441,7 +712,7 @@
       return s.id !== id;
     });
     renderSteps();
-    if (state.steps.length === 0) els.runBtn.disabled = true;
+    if (state.steps.length === 0 && els.runBtn) els.runBtn.disabled = true;
   }
 
   function addBlankStep() {
@@ -455,7 +726,7 @@
     });
     expandedSteps[id] = true;
     renderSteps();
-    els.runBtn.disabled = false;
+    if (els.runBtn) els.runBtn.disabled = false;
     if (els.editorEmpty) els.editorEmpty.hidden = true;
   }
 
@@ -586,8 +857,13 @@
 
   async function runTest() {
     if (state.running || state.steps.length === 0) return;
+    if (!(await ensurePreviewBeforeRun())) {
+      showSiteUrlError("Load a preview URL before running the test (or leave blank for sample checkout).");
+      return;
+    }
+
     state.running = true;
-    els.runBtn.disabled = true;
+    if (els.runBtn) els.runBtn.disabled = true;
     if (els.results) els.results.innerHTML = "";
     if (els.resultsPanel) els.resultsPanel.hidden = true;
 
@@ -595,16 +871,26 @@
     setBrowserActive(true);
     resetFrame();
 
-    var doc = getFrameDoc();
+    var doc = await ensureRunnableFrame();
     if (!doc) {
+      showFrameNotice("error", blockedNoticeHtml());
       appendResult({
         step: 0,
         action: "setup",
         ok: false,
-        detail: "Browser preview failed to load. Refresh and try again.",
+        detail: "Browser preview isn't reachable — try sample checkout.",
       });
       finishRun();
       return;
+    }
+
+    if (state.usingFallback && state.previewUrl) {
+      appendResult({
+        step: 0,
+        action: "setup",
+        ok: true,
+        detail: "Running on sample checkout (your URL can't be controlled from the demo iframe).",
+      });
     }
 
     for (var i = 0; i < state.steps.length; i++) {
@@ -630,21 +916,19 @@
 
   function finishRun() {
     state.running = false;
-    if (state.steps.length > 0) els.runBtn.disabled = false;
+    if (state.steps.length > 0 && els.runBtn) els.runBtn.disabled = false;
     setBrowserActive(false);
   }
 
   function resetApp() {
     state.steps = [];
     state.processing = false;
+    state.clipLoaded = false;
     if (state.videoUrl) {
       URL.revokeObjectURL(state.videoUrl);
       state.videoUrl = null;
     }
-    if (els.uploadDrop) els.uploadDrop.hidden = false;
-    if (els.uploadProgress) els.uploadProgress.hidden = true;
-    if (els.uploadPlayer) els.uploadPlayer.hidden = true;
-    if (els.videoThumb) els.videoThumb.hidden = false;
+    showUploadIdleUI();
     if (els.clipVideo) {
       els.clipVideo.pause();
       els.clipVideo.removeAttribute("src");
@@ -653,17 +937,30 @@
     if (els.videoInput) els.videoInput.value = "";
     if (els.transcriptPanel) els.transcriptPanel.hidden = true;
     if (els.resultsPanel) els.resultsPanel.hidden = true;
-    if (els.results)
+    if (els.results) {
       els.results.innerHTML =
         '<p class="run-results__empty">Results appear here after you run the test.</p>';
+    }
     if (els.progressFill) els.progressFill.style.width = "0%";
     if (els.progressPct) els.progressPct.textContent = "0%";
+    if (els.siteUrl) els.siteUrl.value = "";
+    hideSiteUrlError();
+    hideFrameNotice();
     expandedSteps = {};
     renderSteps();
     resetFrame();
-    els.runBtn.disabled = true;
+    if (els.runBtn) els.runBtn.disabled = true;
     setBrowserActive(false);
-    setPipeline("upload", "Drop a screen recording (.mp4 or .webm) to get started — or try the sample clip.");
+    state.previewUrl = null;
+    state.previewReady = false;
+    state.frameAccess = "unknown";
+    state.frameBlocked = false;
+    state.usingFallback = false;
+    setPipeline(
+      "upload",
+      "Drop a screen recording (.mp4 or .webm), or click Run sample — transcript and steps are preset until you self-host Lumina."
+    );
+    loadPreviewUrl(null, false);
   }
 
   function initHeroPreview() {
@@ -700,8 +997,18 @@
     }, 2800);
   }
 
+  function maybeAutoStartSample() {
+    if (location.hash !== "#app" || state.clipLoaded || state.processing) return;
+    var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(runSample, reduced ? 0 : 450);
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     bind();
     initHeroPreview();
+    if (!els.app) return;
+    loadPreviewUrl(null, false).then(function () {
+      maybeAutoStartSample();
+    });
   });
 })();
