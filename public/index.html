@@ -11,100 +11,120 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@600;800&family=Karla:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="theme-lumina landing-v2">
+<body class="theme-lumina">
   <div class="bg-animation" aria-hidden="true"></div>
   <div class="grain" aria-hidden="true"></div>
+  <div class="spotlight-beam" aria-hidden="true"></div>
 
-  <header class="header landing-hero landing-hero--split">
-    <div class="header__top">
-      <a class="header__brand" href="https://piyushm.dev">piyushm.dev</a>
-      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme" title="Toggle theme">
-        <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">&#9728;</span>
-        <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">&#9789;</span>
-      </button>
-    </div>
+  <nav class="top-bar" aria-label="Site">
+    <a class="top-bar__brand" href="https://piyushm.dev">piyushm.dev</a>
+    <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme" title="Toggle theme">
+      <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">&#9728;</span>
+      <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">&#9789;</span>
+    </button>
+  </nav>
 
-    <div class="header__inner hero-copy">
-      <p class="eyebrow">◎ · Walkthrough testing</p>
-      <span class="badge">Self-hosted · Open source</span>
-      <h1><span class="h1-accent">Lumina</span></h1>
-      <p class="lead">Record how a feature should work once — Lumina turns narration and on-screen actions into steps your team can review, then runs them in a real browser.</p>
-      <div class="hero-cta links">
+  <header class="hero">
+    <div class="hero__copy">
+      <p class="eyebrow">Spotlight testing</p>
+      <p class="wordmark" aria-hidden="true">Lumina</p>
+      <h1>
+        <span class="h1-line">Walkthroughs</span>
+        <span class="h1-line h1-line--glow">become browser tests</span>
+      </h1>
+      <p class="lead">Record how a feature should work once. Lumina extracts narration and on-screen actions into reviewable steps, then runs them in Playwright on your infrastructure.</p>
+      <div class="hero-cta">
         <a class="btn btn-primary" href="https://github.com/PiyushMishra318/lumina" target="_blank" rel="noopener noreferrer">View on GitHub</a>
         <a class="btn btn-secondary" href="https://github.com/PiyushMishra318/lumina#readme" target="_blank" rel="noopener noreferrer">Read the docs</a>
       </div>
+      <ul class="hero-tags" aria-label="Product traits">
+        <li>Self-hosted</li>
+        <li>Open source</li>
+        <li>Whisper + Playwright</li>
+      </ul>
     </div>
 
-    <aside class="hero-panel hero-panel--preview" aria-labelledby="hero-panel-title" id="hero-preview">
-      <p id="hero-panel-title" class="hero-panel__label">From recording to test</p>
-      <div class="hero-preview">
-        <div class="hero-preview__clip">
-          <span class="hero-preview__rec" aria-hidden="true"></span>
-          <span>Checkout walkthrough</span>
-          <span class="hero-preview__time" id="hero-preview-time">0:24</span>
-        </div>
-        <ul class="hero-preview__steps" id="hero-preview-steps">
-          <li class="hero-preview__step" data-stage="0">
-            <span class="step-icon step-icon--fill" aria-hidden="true">✎</span>
-            Fill email field
-          </li>
-          <li class="hero-preview__step" data-stage="1">
-            <span class="step-icon step-icon--fill" aria-hidden="true">✎</span>
-            Enter promo code
-          </li>
-          <li class="hero-preview__step" data-stage="2">
-            <span class="step-icon step-icon--click" aria-hidden="true">◎</span>
-            Click Apply discount
-          </li>
-          <li class="hero-preview__step hero-preview__step--active" data-stage="3">
-            <span class="step-icon step-icon--assert" aria-hidden="true">✓</span>
-            See confirmation
-          </li>
-        </ul>
-        <p class="hero-preview__run">
-          <span class="hero-preview__dot" aria-hidden="true"></span>
-          <span id="hero-preview-status">Running in browser…</span>
-        </p>
+    <div class="pipeline" id="hero-pipeline" role="group" aria-label="Recording to test pipeline">
+      <div class="pipeline__track" aria-hidden="true">
+        <span class="pipeline__progress" id="pipeline-progress"></span>
       </div>
-      <div class="hero-panel__glow" aria-hidden="true"></div>
-    </aside>
+      <ol class="pipeline__nodes">
+        <li class="pipeline__node pipeline__node--active" data-stage="0">
+          <span class="pipeline__icon" aria-hidden="true">REC</span>
+          <span class="pipeline__label">Record</span>
+          <span class="pipeline__detail">Screen + voice walkthrough</span>
+        </li>
+        <li class="pipeline__node" data-stage="1">
+          <span class="pipeline__icon" aria-hidden="true">TXT</span>
+          <span class="pipeline__label">Transcribe</span>
+          <span class="pipeline__detail">Whisper on your stack</span>
+        </li>
+        <li class="pipeline__node" data-stage="2">
+          <span class="pipeline__icon" aria-hidden="true">EDT</span>
+          <span class="pipeline__label">Review</span>
+          <span class="pipeline__detail">Edit steps before run</span>
+        </li>
+        <li class="pipeline__node" data-stage="3">
+          <span class="pipeline__icon" aria-hidden="true">RUN</span>
+          <span class="pipeline__label">Execute</span>
+          <span class="pipeline__detail">Playwright in browser</span>
+        </li>
+      </ol>
+      <p class="pipeline__status" id="pipeline-status" aria-live="polite">Recording checkout walkthrough…</p>
+    </div>
   </header>
 
   <main class="page-main">
-    <p class="section-title">Built for product teams</p>
-    <div class="feature-grid">
-      <article class="feature-tile feature-tile--1">
-        <span class="feature-tile__glyph" aria-hidden="true">01</span>
-        <strong>Speak your flow</strong>
-        <span>PMs and designers record how features should work — no test scripts or selectors required upfront.</span>
-      </article>
-      <article class="feature-tile feature-tile--2">
-        <span class="feature-tile__glyph" aria-hidden="true">02</span>
-        <strong>Review every step</strong>
-        <span>Lumina proposes actions from the walkthrough so QA can edit, approve, or reject before anything runs.</span>
-      </article>
-      <article class="feature-tile feature-tile--3">
-        <span class="feature-tile__glyph" aria-hidden="true">03</span>
-        <strong>See what broke</strong>
-        <span>Failed steps capture screenshots so you know exactly which screen regressed and why.</span>
-      </article>
-      <article class="feature-tile feature-tile--4">
-        <span class="feature-tile__glyph" aria-hidden="true">04</span>
-        <strong>Own your pipeline</strong>
-        <span>Self-host Whisper transcription and Playwright execution — recordings stay on your infrastructure.</span>
-      </article>
-    </div>
-
-    <div class="cta-band">
-      <div>
-        <strong>Ready to turn walkthroughs into tests?</strong>
-        <p>Clone the repo, point Lumina at a recording, and run the full video → Playwright pipeline on your machine.</p>
+    <section class="pillars" aria-labelledby="pillars-heading">
+      <h2 id="pillars-heading" class="section-kicker">Three beats, one pipeline</h2>
+      <div class="pillar-track">
+        <article class="pillar">
+          <div class="pillar__mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5" opacity="0.35"/>
+              <circle cx="24" cy="24" r="6" fill="currentColor"/>
+              <path d="M24 8v8M24 32v8M8 24h8M32 24h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Capture intent</h3>
+          <p>PMs and designers narrate the happy path while clicking through the product — no selectors or test DSL upfront.</p>
+        </article>
+        <article class="pillar">
+          <div class="pillar__mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="10" y="12" width="28" height="24" rx="4" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M16 20h16M16 26h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Review every step</h3>
+          <p>Lumina proposes actions from the recording so QA can approve, tweak, or reject before anything hits CI.</p>
+        </article>
+        <article class="pillar">
+          <div class="pillar__mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14 34l8-10 6 7 10-14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="10" y="10" width="28" height="28" rx="4" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <h3>Spotlight failures</h3>
+          <p>Failed steps ship screenshots and context so you see exactly which screen regressed — not a vague log line.</p>
+        </article>
       </div>
-      <a class="btn btn-primary" href="https://github.com/PiyushMishra318/lumina" target="_blank" rel="noopener noreferrer">View on GitHub</a>
-    </div>
+    </section>
+
+    <section class="close" aria-labelledby="close-heading">
+      <p class="close__eyebrow" id="close-heading">Start on your machine</p>
+      <blockquote class="close__quote">
+        Clone the repo, point Lumina at a walkthrough, and run the full video → Playwright pipeline without sending recordings to a vendor cloud.
+      </blockquote>
+      <div class="close__actions">
+        <a class="btn btn-primary" href="https://github.com/PiyushMishra318/lumina" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+        <a class="btn btn-ghost" href="https://github.com/PiyushMishra318/lumina#readme" target="_blank" rel="noopener noreferrer">Setup guide</a>
+      </div>
+    </section>
   </main>
 
-  <footer class="site-footer footer">
+  <footer class="site-footer">
     <p>MIT © 2026 · <a href="https://piyushm.dev">piyushm.dev</a> · <a href="https://github.com/PiyushMishra318/lumina" target="_blank" rel="noopener noreferrer">GitHub</a></p>
   </footer>
 
