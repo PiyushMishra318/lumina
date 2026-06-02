@@ -283,8 +283,13 @@
         }, 350);
       }
 
-      els.frame.addEventListener("load", onLoad);
-      setFrameSrc(targetUrl);
+      var currentSrc = els.frame.getAttribute("src") || "";
+      if (currentSrc === targetUrl) {
+        onLoad();
+      } else {
+        els.frame.addEventListener("load", onLoad);
+        setFrameSrc(targetUrl);
+      }
     });
   }
 
@@ -614,7 +619,7 @@
           );
         }).join("") +
         "</select></label>" +
-        '<div class="step-card__reorder">' +
+        '<div class="step-card__reorder" role="group" aria-label="Reorder step">' +
         '<button type="button" class="icon-btn" data-move="up" aria-label="Move step up"' +
         (index === 0 ? " disabled" : "") +
         ">↑</button>" +
@@ -623,11 +628,11 @@
         ">↓</button>" +
         '<button type="button" class="icon-btn icon-btn--danger" data-remove aria-label="Remove step">×</button>' +
         "</div></div>" +
-        '<label class="step-card__label">On<input type="text" data-field="target" value="' +
+        '<label class="step-card__field">On<input type="text" data-field="target" value="' +
         escapeAttr(step.target) +
         '" placeholder="e.g. Email field, Submit button" /></label>' +
         (needsValue
-          ? '<label class="step-card__label">' +
+          ? '<label class="step-card__field">' +
             valueLabel +
             '<input type="text" data-field="value" value="' +
             escapeAttr(step.value) +
