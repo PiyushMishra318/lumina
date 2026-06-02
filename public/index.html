@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Try Lumina’s interactive sample: upload a walkthrough, edit preset steps, run them in a live browser preview. Self-host for full Whisper + Playwright." />
+  <meta name="description" content="Lumina turns walkthrough recordings into browser tests — record once, review steps, self-host for Whisper + Playwright." />
   <title>Lumina — Walkthroughs become tests</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -28,7 +28,7 @@
           <h1>Your walkthrough.<br />Their regression test.</h1>
           <p class="header__lead">Record once. Lumina turns narration and on-screen actions into steps anyone can review — then runs them in a real browser.</p>
           <div class="hero-cta">
-            <a class="btn btn--lg" href="#app">Try Lumina</a>
+            <a class="btn btn--lg" href="https://github.com/PiyushMishra318/lumina" target="_blank" rel="noopener noreferrer">View on GitHub</a>
           </div>
         </div>
         <aside class="hero-panel hero-panel--preview" aria-label="Product preview" id="hero-preview">
@@ -55,111 +55,6 @@
   </header>
 
   <main class="page-main main">
-    <section class="card app-shell" id="app">
-      <div class="app-shell__head">
-        <div>
-          <p class="section-title">Try Lumina</p>
-          <h2 class="app-shell__title">Upload a walkthrough, edit preset steps, watch them run</h2>
-        </div>
-        <button type="button" class="btn" id="run-sample">Run sample</button>
-      </div>
-
-      <div class="site-url-field" id="site-url-field">
-        <label class="site-url-field__label" for="site-url">Where should we run this test?</label>
-        <p class="site-url-field__hint">Load your page in the live browser preview — step replay runs against whatever is shown there. Leave blank and click Load preview for the built-in sample checkout.</p>
-        <div class="site-url-field__row">
-          <input type="text" id="site-url" class="site-url-field__input" name="site-url" inputmode="url" autocomplete="url" placeholder="https://yoursite.com/checkout" spellcheck="false" aria-describedby="site-url-error" />
-          <button type="button" class="btn btn--sm" id="load-preview-url">Load preview</button>
-        </div>
-        <p class="site-url-field__error" id="site-url-error" hidden role="alert"></p>
-      </div>
-
-      <div class="pipeline" id="pipeline" aria-live="polite">
-        <div class="pipeline__step is-active" data-stage="upload"><span>1</span> Upload clip</div>
-        <div class="pipeline__step" data-stage="transcribe"><span>2</span> Transcribe</div>
-        <div class="pipeline__step" data-stage="steps"><span>3</span> Generate steps</div>
-        <div class="pipeline__step" data-stage="run"><span>4</span> Run test</div>
-      </div>
-      <p class="app-status" id="app-status">Drop a screen recording (.mp4 or .webm), or click Run sample — transcript and steps are preset until you self-host Lumina.</p>
-
-      <div class="app-workspace">
-        <aside class="app-pane app-pane--source" aria-label="Recording and transcript">
-          <div class="pane-card">
-            <div class="upload-zone" id="upload-zone">
-              <input type="file" id="video-input" accept="video/mp4,video/webm,.mp4,.webm" hidden />
-              <div class="upload-zone__inner" id="upload-drop">
-                <span class="upload-zone__icon" aria-hidden="true">▶</span>
-                <p class="upload-zone__title">Drop your walkthrough here</p>
-                <p class="upload-zone__hint">or <button type="button" class="link-btn" id="browse-btn">browse files</button> · MP4, WebM · your video plays for real; transcript and steps stay preset in this static demo</p>
-              </div>
-              <div class="upload-zone__progress" id="upload-progress" hidden>
-                <div class="upload-zone__thumb" id="video-thumb"></div>
-                <div class="upload-zone__meta">
-                  <strong id="video-name">recording.mp4</strong>
-                  <div class="progress-bar"><div class="progress-bar__fill" id="progress-fill"></div></div>
-                  <span class="upload-zone__pct" id="progress-pct">0%</span>
-                </div>
-              </div>
-              <div class="upload-zone__player" id="upload-player" hidden>
-                <video id="clip-video" class="upload-zone__player-video" controls playsinline preload="metadata" title="Walkthrough recording"></video>
-              </div>
-            </div>
-          </div>
-
-          <div class="pane-card transcript-panel" id="transcript-panel" hidden>
-            <h3 class="pane-title">Sample transcript (preset)</h3>
-            <div class="transcript" id="demo-transcript"></div>
-          </div>
-
-          <details class="pane-card pane-card--muted coming-soon-card">
-            <summary class="coming-soon-card__summary">
-              <span class="pane-title">Record on your site</span>
-              <span class="badge-soon">Soon</span>
-            </summary>
-            <p class="coming-soon-card__text">Embed Lumina to capture clicks and narration in place — no screen recorder needed.</p>
-          </details>
-        </aside>
-
-        <div class="app-pane app-pane--steps" aria-label="Test steps and results">
-          <div class="pane-card editor-panel" id="editor-panel">
-            <div class="editor-panel__head">
-              <div>
-                <h3 class="pane-title">Your test steps</h3>
-                <p class="pane-subtitle">Tap a step to edit details</p>
-              </div>
-              <button type="button" class="btn btn--ghost btn--sm" id="add-step">Add step</button>
-            </div>
-            <p class="editor-empty" id="editor-empty">Preset checkout steps appear here after your clip loads — not auto-generated from your video in this demo.</p>
-            <ol class="step-list" id="step-list"></ol>
-          </div>
-
-          <div class="run-bar">
-            <button type="button" class="btn btn--run" id="run-test" disabled>Run test in browser</button>
-            <button type="button" class="btn btn--ghost btn--sm" id="reset-app">Reset</button>
-          </div>
-
-          <div class="pane-card results-panel" id="results-panel" hidden>
-            <h3 class="pane-title">Run summary</h3>
-            <div class="run-results" id="demo-results">
-              <p class="run-results__empty">Results appear here after you run the test.</p>
-            </div>
-          </div>
-        </div>
-
-        <aside class="app-pane app-pane--stage" aria-label="Live browser preview">
-          <div class="browser-stage" id="browser-stage">
-            <div class="browser-stage__chrome">
-              <span class="browser-stage__dot" aria-hidden="true"></span>
-              <span class="browser-stage__label">Live browser</span>
-              <span class="browser-stage__url" id="browser-stage-url">sample checkout</span>
-            </div>
-            <div class="frame-notice" id="frame-notice" hidden role="status"></div>
-            <iframe id="demo-frame" class="demo-frame" title="Page preview for your test" src="about:blank"></iframe>
-          </div>
-        </aside>
-      </div>
-    </section>
-
     <section class="card">
       <p class="section-title">Why Lumina</p>
       <div class="feature-grid">
@@ -195,6 +90,6 @@
   </footer>
 
   <script src="theme.js"></script>
-  <script src="demo.js"></script>
+  <script src="hero-preview.js"></script>
 </body>
 </html>
