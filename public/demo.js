@@ -260,12 +260,30 @@
   }
 
   async function useSampleClip() {
+    if (state.processing) return;
+    state.processing = true;
     if (els.videoName) els.videoName.textContent = SAMPLE_CLIP_NAME;
     showClipPlayer(SAMPLE_VIDEO_PATH, false);
-    var fake = new File(["sample"], SAMPLE_CLIP_NAME, { type: "video/mp4" });
-    els.uploadDrop.hidden = true;
-    els.uploadProgress.hidden = false;
-    await processVideo(fake);
+
+    setPipeline("upload", "Loading sample walkthrough…");
+    await animateProgress(0, 100, 800);
+
+    setPipeline("transcribe", "Transcribing narration from audio…");
+    await animateProgress(0, 100, 1400);
+    renderTranscript();
+
+    setPipeline("steps", "Turning walkthrough into editable test steps…");
+    await wait(900);
+    expandedSteps = {};
+    state.steps = DEFAULT_STEPS.map(function (s) {
+      return { id: uid(), action: s.action, target: s.target, value: s.value, selector: s.selector };
+    });
+    renderSteps();
+    els.transcriptPanel.hidden = false;
+    els.runBtn.disabled = false;
+
+    setPipeline("steps", "Steps ready — review, edit, then run the test.");
+    state.processing = false;
   }
 
   function renderTranscript() {

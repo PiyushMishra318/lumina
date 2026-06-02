@@ -59,7 +59,7 @@
       <div class="app-shell__head">
         <div>
           <p class="section-title">Try Lumina</p>
-          <h2 class="app-shell__title">Review the sample walkthrough, edit the steps, watch them run</h2>
+          <h2 class="app-shell__title">Play your walkthrough, edit preset steps, watch them run</h2>
         </div>
       </div>
 
@@ -69,13 +69,13 @@
         <div class="pipeline__step" data-stage="steps"><span>3</span> Generate steps</div>
         <div class="pipeline__step" data-stage="run"><span>4</span> Run test</div>
       </div>
-      <p class="app-status" id="app-status">Loading the sample checkout walkthrough…</p>
+      <p class="app-status" id="app-status">Press Start demo to load your recording and preview example.com.</p>
 
       <div class="app-workspace">
         <aside class="app-pane app-pane--source" aria-label="Recording and transcript">
           <div class="pane-card site-url-field" id="site-url-field">
             <label class="site-url-field__label" for="site-url">Your app URL</label>
-            <p class="site-url-field__hint">Optional preview only — paste a page URL to load in the live browser. Steps in this demo still come from the fixed sample walkthrough.</p>
+            <p class="site-url-field__hint">Loads in the live browser preview when the demo starts. Steps below are a preset checkout flow — not generated from your video on this static page.</p>
             <input
               type="url"
               id="site-url"
@@ -83,33 +83,39 @@
               name="site-url"
               inputmode="url"
               autocomplete="url"
-              placeholder="https://your-app.com/checkout"
+              value="https://example.com"
+              placeholder="https://example.com"
             />
             <p class="site-url-field__error" id="site-url-error" hidden role="alert"></p>
-            <p class="site-url-field__optional">Leave blank to use our sample checkout page for step replay.</p>
+            <p class="site-url-field__optional">example.com usually blocks iframe embeds — we fall back to our sample checkout for step replay.</p>
           </div>
 
           <div class="pane-card">
             <div class="demo-clip" id="demo-clip">
               <div class="demo-clip__idle" id="demo-idle">
                 <span class="demo-clip__icon" aria-hidden="true">▶</span>
-                <p class="demo-clip__title">Checkout promo walkthrough</p>
-                <p class="demo-clip__hint">Fixed sample recording and transcript. To process your own videos (Whisper + LLM + Playwright), self-host Lumina from GitHub.</p>
+                <p class="demo-clip__title">Recording 2026-06-02 232143</p>
+                <p class="demo-clip__hint">Your screen recording plays for real. Transcript and steps are preset illustrations — self-host Lumina for Whisper + LLM + Playwright on your own clips.</p>
                 <button type="button" class="btn" id="start-demo-inline">Start demo</button>
               </div>
               <div class="demo-clip__progress" id="demo-progress" hidden>
                 <div class="demo-clip__thumb" id="video-thumb"></div>
                 <div class="demo-clip__meta">
-                  <strong id="video-name">checkout-walkthrough.mp4</strong>
+                  <strong id="video-name">Recording 2026-06-02 232143.mp4</strong>
                   <div class="progress-bar"><div class="progress-bar__fill" id="progress-fill"></div></div>
                   <span class="demo-clip__pct" id="progress-pct">0%</span>
                 </div>
+              </div>
+              <div class="demo-clip__player" id="demo-video-player" hidden>
+                <video id="sample-video" class="demo-clip__player-video" controls playsinline preload="metadata" title="Walkthrough recording">
+                  <source src="sample-walkthrough.mp4" type="video/mp4" />
+                </video>
               </div>
             </div>
           </div>
 
           <div class="pane-card transcript-panel" id="transcript-panel" hidden>
-            <h3 class="pane-title">What Lumina heard</h3>
+            <h3 class="pane-title">Sample transcript (preset)</h3>
             <div class="transcript" id="demo-transcript"></div>
           </div>
 
@@ -131,7 +137,7 @@
               </div>
               <button type="button" class="btn btn--ghost btn--sm" id="add-step">Add step</button>
             </div>
-            <p class="editor-empty" id="editor-empty">Steps appear here after the sample walkthrough loads.</p>
+            <p class="editor-empty" id="editor-empty">Preset checkout steps appear here after the demo loads — not auto-generated from your video.</p>
             <ol class="step-list" id="step-list"></ol>
           </div>
 
