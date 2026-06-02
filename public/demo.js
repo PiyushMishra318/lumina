@@ -258,7 +258,7 @@
         '<button type="button" class="icon-btn" data-move="up" aria-label="Move step up"' + (index === 0 ? " disabled" : "") + ">↑</button>" +
         '<button type="button" class="icon-btn" data-move="down" aria-label="Move step down"' + (index === state.steps.length - 1 ? " disabled" : "") + ">↓</button>" +
         "</div>" +
-        '<button type="button" class="icon-btn icon-btn--danger" data-remove aria-label="Remove step">×</button>" +
+        '<button type="button" class="icon-btn icon-btn--danger" data-remove aria-label="Remove step">×</button>' +
         "</div>" +
         '<label class="step-card__field">' +
         "<span>What to interact with</span>" +
