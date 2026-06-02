@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Lumina turns product walkthrough recordings into executable website tests." />
+  <meta name="description" content="Try Lumina’s interactive sample: walkthroughs become editable browser tests. Self-host to process your own recordings." />
   <title>Lumina — Walkthroughs become tests</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -59,39 +59,51 @@
       <div class="app-shell__head">
         <div>
           <p class="section-title">Try Lumina</p>
-          <h2 class="app-shell__title">Upload a walkthrough, edit the steps, watch them run</h2>
+          <h2 class="app-shell__title">Review the sample walkthrough, edit the steps, watch them run</h2>
         </div>
-        <button type="button" class="btn btn--ghost btn--sm" id="use-sample">Use sample clip</button>
       </div>
 
       <div class="pipeline" id="pipeline" aria-live="polite">
-        <div class="pipeline__step is-active" data-stage="upload"><span>1</span> Upload clip</div>
+        <div class="pipeline__step is-active" data-stage="load"><span>1</span> Sample clip</div>
         <div class="pipeline__step" data-stage="transcribe"><span>2</span> Transcribe</div>
         <div class="pipeline__step" data-stage="steps"><span>3</span> Generate steps</div>
         <div class="pipeline__step" data-stage="run"><span>4</span> Run test</div>
       </div>
-      <p class="app-status" id="app-status">Drop a screen recording (.mp4 or .webm) to get started — or try the sample clip.</p>
+      <p class="app-status" id="app-status">Loading the sample checkout walkthrough…</p>
 
       <div class="app-workspace">
         <aside class="app-pane app-pane--source" aria-label="Recording and transcript">
+          <div class="pane-card site-url-field" id="site-url-field">
+            <label class="site-url-field__label" for="site-url">Your app URL</label>
+            <p class="site-url-field__hint">Optional preview only — paste a page URL to load in the live browser. Steps in this demo still come from the fixed sample walkthrough.</p>
+            <input
+              type="url"
+              id="site-url"
+              class="site-url-field__input"
+              name="site-url"
+              inputmode="url"
+              autocomplete="url"
+              placeholder="https://your-app.com/checkout"
+            />
+            <p class="site-url-field__error" id="site-url-error" hidden role="alert"></p>
+            <p class="site-url-field__optional">Leave blank to use our sample checkout page for step replay.</p>
+          </div>
+
           <div class="pane-card">
-            <div class="upload-zone" id="upload-zone">
-              <input type="file" id="video-input" accept="video/mp4,video/webm,.mp4,.webm" hidden />
-              <div class="upload-zone__inner" id="upload-drop">
-                <span class="upload-zone__icon" aria-hidden="true">▶</span>
-                <p class="upload-zone__title">Drop your walkthrough here</p>
-                <p class="upload-zone__hint">or <button type="button" class="link-btn" id="browse-btn">browse files</button> · MP4, WebM</p>
+            <div class="demo-clip" id="demo-clip">
+              <div class="demo-clip__idle" id="demo-idle">
+                <span class="demo-clip__icon" aria-hidden="true">▶</span>
+                <p class="demo-clip__title">Checkout promo walkthrough</p>
+                <p class="demo-clip__hint">Fixed sample recording and transcript. To process your own videos (Whisper + LLM + Playwright), self-host Lumina from GitHub.</p>
+                <button type="button" class="btn" id="start-demo-inline">Start demo</button>
               </div>
-              <div class="upload-zone__progress" id="upload-progress" hidden>
-                <div class="upload-zone__thumb" id="video-thumb"></div>
-                <div class="upload-zone__meta">
-                  <strong id="video-name">recording.mp4</strong>
+              <div class="demo-clip__progress" id="demo-progress" hidden>
+                <div class="demo-clip__thumb" id="video-thumb"></div>
+                <div class="demo-clip__meta">
+                  <strong id="video-name">checkout-walkthrough.mp4</strong>
                   <div class="progress-bar"><div class="progress-bar__fill" id="progress-fill"></div></div>
-                  <span class="upload-zone__pct" id="progress-pct">0%</span>
+                  <span class="demo-clip__pct" id="progress-pct">0%</span>
                 </div>
-              </div>
-              <div class="upload-zone__player" id="upload-player" hidden>
-                <video id="clip-video" class="upload-zone__player-video" controls playsinline preload="metadata" title="Walkthrough recording"></video>
               </div>
             </div>
           </div>
@@ -119,7 +131,7 @@
               </div>
               <button type="button" class="btn btn--ghost btn--sm" id="add-step">Add step</button>
             </div>
-            <p class="editor-empty" id="editor-empty">Steps appear here after your clip is processed.</p>
+            <p class="editor-empty" id="editor-empty">Steps appear here after the sample walkthrough loads.</p>
             <ol class="step-list" id="step-list"></ol>
           </div>
 
@@ -143,7 +155,8 @@
               <span class="browser-stage__label">Live browser</span>
               <span class="browser-stage__url" id="browser-stage-url">sample checkout</span>
             </div>
-            <iframe id="demo-frame" class="demo-frame" title="Sample checkout app" src="demo-target.html"></iframe>
+            <p class="frame-notice" id="frame-notice" hidden role="status"></p>
+            <iframe id="demo-frame" class="demo-frame" title="Page preview for your test" src="demo-target.html"></iframe>
           </div>
         </aside>
       </div>
