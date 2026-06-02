@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Lumina turns product walkthrough recordings into executable website tests." />
+  <meta name="description" content="Try Lumina’s interactive sample: walkthrough recordings become editable browser tests. Self-host for your own videos." />
   <title>Lumina — Walkthroughs become tests</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -140,9 +140,10 @@
             <div class="browser-stage__chrome">
               <span class="browser-stage__dot" aria-hidden="true"></span>
               <span class="browser-stage__label">Live browser</span>
-              <span class="browser-stage__url">demo checkout</span>
+              <span class="browser-stage__url" id="browser-stage-url">sample checkout</span>
             </div>
-            <iframe id="demo-frame" class="demo-frame" title="Sample checkout app" src="demo-target.html"></iframe>
+            <p class="frame-notice" id="frame-notice" hidden role="status"></p>
+            <iframe id="demo-frame" class="demo-frame" title="Page preview for your test" src="demo-target.html"></iframe>
           </div>
         </aside>
       </div>

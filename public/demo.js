@@ -25,6 +25,9 @@
     { id: "s4", action: "assert", target: "Confirmation message", value: "visible", selector: "#status" },
   ];
 
+  var FALLBACK_FRAME = "demo-target.html";
+  var SAMPLE_FRAME_LABEL = "sample checkout";
+
   var TARGET_SELECTOR_MAP = {
     email: "#email",
     "email field": "#email",
@@ -47,6 +50,10 @@
     processing: false,
     demoLoaded: false,
     stepCounter: 0,
+    previewUrl: null,
+    frameBlocked: false,
+    runOnSample: false,
+    frameLoadToken: 0,
   };
 
   var els = {};
@@ -83,6 +90,175 @@
     return ACTION_TYPES[0];
   }
 
+  function validateSiteUrl(raw) {
+    var trimmed = (raw || "").trim();
+    if (!trimmed) return { ok: true, url: null };
+    try {
+      var parsed = new URL(trimmed);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return {
+          ok: false,
+          error: "Please use a link that starts with https:// or http://",
+        };
+      }
+      return { ok: true, url: parsed.href };
+    } catch (e) {
+      return {
+        ok: false,
+        error:
+          "That doesn't look like a web address. Try something like https://your-app.com/checkout",
+      };
+    }
+  }
+
+  function isSameOriginUrl(url) {
+    try {
+      return new URL(url, window.location.href).origin === window.location.origin;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function formatUrlForChrome(url) {
+    try {
+      var u = new URL(url);
+      var host = u.hostname.replace(/^www\./, "");
+      var path = u.pathname === "/" ? "" : u.pathname;
+      var label = host + path;
+      return label.length > 42 ? label.slice(0, 39) + "…" : label;
+    } catch (e) {
+      return "your site";
+    }
+  }
+
+  function setFrameSrc(src) {
+    if (!els.frame || els.frame.getAttribute("src") === src) return;
+    els.frame.setAttribute("src", src);
+  }
+
+  function updateBrowserChromeLabel(label) {
+    if (els.browserStageUrl) els.browserStageUrl.textContent = label;
+  }
+
+  function showSiteUrlError(message) {
+    if (!els.siteUrl || !els.siteUrlError) return;
+    els.siteUrl.classList.add("is-invalid");
+    els.siteUrlError.hidden = false;
+    els.siteUrlError.textContent = message;
+  }
+
+  function hideSiteUrlError() {
+    if (!els.siteUrl || !els.siteUrlError) return;
+    els.siteUrl.classList.remove("is-invalid");
+    els.siteUrlError.hidden = true;
+    els.siteUrlError.textContent = "";
+  }
+
+  function showFrameNotice(kind, message) {
+    if (!els.frameNotice) return;
+    els.frameNotice.hidden = false;
+    els.frameNotice.textContent = message;
+    els.frameNotice.className = "frame-notice";
+    if (kind === "warn") els.frameNotice.classList.add("frame-notice--warn");
+    if (kind === "error") els.frameNotice.classList.add("frame-notice--error");
+  }
+
+  function hideFrameNotice() {
+    if (!els.frameNotice) return;
+    els.frameNotice.hidden = true;
+    els.frameNotice.textContent = "";
+    els.frameNotice.className = "frame-notice";
+  }
+
+  function loadPreviewUrl(url, showLoading) {
+    state.previewUrl = url || null;
+    state.frameBlocked = false;
+    state.frameLoadToken += 1;
+    var token = state.frameLoadToken;
+
+    if (!url) {
+      hideFrameNotice();
+      state.runOnSample = false;
+      updateBrowserChromeLabel(SAMPLE_FRAME_LABEL);
+      setFrameSrc(FALLBACK_FRAME);
+      return;
+    }
+
+    updateBrowserChromeLabel(formatUrlForChrome(url));
+    state.runOnSample = !isSameOriginUrl(url);
+
+    if (showLoading) showFrameNotice("info", "Loading your site in the preview…");
+
+    setFrameSrc(url);
+
+    if (state.runOnSample) {
+      window.setTimeout(function () {
+        if (token !== state.frameLoadToken) return;
+        showFrameNotice(
+          "info",
+          "If the preview looks empty, that site blocks embedded views. When you run the test, steps play on our sample checkout so you can see Lumina in action."
+        );
+      }, 1500);
+    }
+  }
+
+  function onFrameLoad() {
+    if (!els.frame || !state.previewUrl) return;
+
+    var blocked = false;
+    try {
+      var doc = els.frame.contentDocument;
+      if (!doc || !doc.body || !doc.body.childNodes.length) blocked = true;
+    } catch (e) {
+      try {
+        var loc = els.frame.contentWindow.location.href;
+        if (loc === "about:blank" || loc === "") blocked = true;
+      } catch (e2) {
+        return;
+      }
+    }
+
+    if (!blocked) return;
+
+    state.frameBlocked = true;
+    state.previewUrl = null;
+    state.runOnSample = false;
+    showFrameNotice(
+      "warn",
+      "This site can't be shown inside the preview — many sites block that for security. We're showing our sample checkout instead."
+    );
+    updateBrowserChromeLabel(SAMPLE_FRAME_LABEL);
+    setFrameSrc(FALLBACK_FRAME);
+  }
+
+  function applySiteUrlFromInput() {
+    var raw = els.siteUrl ? els.siteUrl.value : "";
+    var result = validateSiteUrl(raw);
+    if (!result.ok) {
+      showSiteUrlError(result.error);
+      return result;
+    }
+    hideSiteUrlError();
+    return result;
+  }
+
+  function onSiteUrlChange() {
+    var result = applySiteUrlFromInput();
+    if (!result.ok) return;
+    loadPreviewUrl(result.url, true);
+  }
+
+  async function ensureRunnableFrame() {
+    if (!state.runOnSample && !state.frameBlocked) {
+      var doc = getFrameDoc();
+      if (doc) return doc;
+    }
+    setFrameSrc(FALLBACK_FRAME);
+    updateBrowserChromeLabel(SAMPLE_FRAME_LABEL);
+    await wait(400);
+    return getFrameDoc();
+  }
+
   function bind() {
     els.demoClip = $("demo-clip");
     els.demoIdle = $("demo-idle");
@@ -102,19 +278,28 @@
     els.pipeline = $("pipeline");
     els.status = $("app-status");
     els.addStepBtn = $("add-step");
-    els.startDemoBtn = $("start-demo");
     els.startDemoInline = $("start-demo-inline");
+    els.resultsPanel = $("results-panel");
+    els.siteUrl = $("site-url");
+    els.siteUrlError = $("site-url-error");
+    els.frameNotice = $("frame-notice");
+    els.browserStageUrl = $("browser-stage-url");
 
     if (!els.demoClip) return;
 
-    var startHandlers = [els.startDemoBtn, els.startDemoInline].filter(Boolean);
-    startHandlers.forEach(function (btn) {
+    [els.startDemoInline].filter(Boolean).forEach(function (btn) {
       btn.addEventListener("click", startDemo);
     });
-    els.runBtn.addEventListener("click", runTest);
-    els.resetBtn.addEventListener("click", resetApp);
-    els.addStepBtn.addEventListener("click", addBlankStep);
+    if (els.runBtn) els.runBtn.addEventListener("click", runTest);
+    if (els.resetBtn) els.resetBtn.addEventListener("click", resetApp);
+    if (els.addStepBtn) els.addStepBtn.addEventListener("click", addBlankStep);
+    if (els.siteUrl) {
+      els.siteUrl.addEventListener("change", onSiteUrlChange);
+      els.siteUrl.addEventListener("blur", onSiteUrlChange);
+    }
+    if (els.frame) els.frame.addEventListener("load", onFrameLoad);
     window.addEventListener("hashchange", maybeAutoStartDemo);
+    loadPreviewUrl(null, false);
   }
 
   function isAppSection() {
@@ -163,13 +348,16 @@
       els.videoThumb.innerHTML =
         '<div class="demo-clip__placeholder" aria-hidden="true"><span>▶</span></div>';
     }
-    if (els.startDemoBtn) els.startDemoBtn.hidden = true;
   }
 
   async function startDemo() {
     if (state.processing || state.demoLoaded) return;
 
+    var urlCheck = applySiteUrlFromInput();
+    if (!urlCheck.ok) return;
+
     state.processing = true;
+    loadPreviewUrl(urlCheck.url, true);
     showProgressUI();
     setPipeline("load", "Loading sample walkthrough…");
     await animateProgress(0, 100, 800);
@@ -187,7 +375,10 @@
     els.transcriptPanel.hidden = false;
     els.runBtn.disabled = false;
 
-    setPipeline("steps", "Steps ready — review, edit, then run the test.");
+    setPipeline(
+      "steps",
+      "Sample ready — edit steps, then run the test. Your own videos need self-hosted Lumina (see GitHub)."
+    );
     state.processing = false;
     state.demoLoaded = true;
   }
@@ -232,7 +423,7 @@
         '<button type="button" class="icon-btn" data-move="up" aria-label="Move step up"' + (index === 0 ? " disabled" : "") + ">↑</button>" +
         '<button type="button" class="icon-btn" data-move="down" aria-label="Move step down"' + (index === state.steps.length - 1 ? " disabled" : "") + ">↓</button>" +
         "</div>" +
-        '<button type="button" class="icon-btn icon-btn--danger" data-remove aria-label="Remove step">×</button>" +
+        '<button type="button" class="icon-btn icon-btn--danger" data-remove aria-label="Remove step">×</button>' +
         "</div>" +
         '<label class="step-card__field">' +
         "<span>What to interact with</span>" +
@@ -417,11 +608,12 @@
     state.running = true;
     els.runBtn.disabled = true;
     if (els.results) els.results.innerHTML = "";
+    if (els.resultsPanel) els.resultsPanel.hidden = false;
 
     setPipeline("run", "Running steps in the live browser…");
     resetFrame();
 
-    var doc = getFrameDoc();
+    var doc = await ensureRunnableFrame();
     if (!doc) {
       appendResult({ step: 0, action: "setup", ok: false, detail: "Browser preview failed to load. Refresh and try again." });
       finishRun();
@@ -464,11 +656,17 @@
     if (els.results) els.results.innerHTML = '<p class="run-results__empty">Results appear here after you run the test.</p>';
     if (els.progressFill) els.progressFill.style.width = "0%";
     if (els.progressPct) els.progressPct.textContent = "0%";
-    if (els.startDemoBtn) els.startDemoBtn.hidden = false;
+    if (els.resultsPanel) els.resultsPanel.hidden = true;
     renderSteps();
     resetFrame();
+    state.previewUrl = null;
+    state.frameBlocked = false;
+    state.runOnSample = false;
+    if (els.siteUrl) els.siteUrl.value = "";
+    hideSiteUrlError();
+    loadPreviewUrl(null, false);
     els.runBtn.disabled = true;
-    setPipeline("load", "Press Start demo to load the sample walkthrough.");
+    setPipeline("load", "Add your app URL if you like, then press Start demo.");
     if (isAppSection()) startDemo();
   }
 
@@ -509,10 +707,12 @@
   document.addEventListener("DOMContentLoaded", function () {
     bind();
     initHeroPreview();
+    if (!els.demoClip) return;
     if (isAppSection()) {
-      startDemo();
+      var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      setTimeout(startDemo, reduced ? 0 : 400);
     } else {
-      setPipeline("load", "Press Start demo to load the sample walkthrough.");
+      setPipeline("load", "Open Try Lumina below or press Start demo to load the sample walkthrough.");
     }
   });
 })();
